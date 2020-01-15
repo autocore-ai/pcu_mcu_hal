@@ -8,6 +8,9 @@
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 #include "HL_emac.h"
+#include "MX25L6406E.h"
+
+
 extern hdkif_t hdkif_data[MAX_EMAC_INSTANCE];
 
 
@@ -323,3 +326,190 @@ BaseType_t xNetStatCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const c
 	snprintf( pcWriteBuffer, xWriteBufferLen, "FreeRTOS_netstat() called - output uses FreeRTOS_printf\r\n" );
 	return pdFALSE;
 	}
+
+BaseType_t xSetIpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+{
+    char * pcParameter;
+    BaseType_t lParameterStringLength, xReturn = pdFALSE; ;
+    uint32_t ulIPAddress, ulBytesToPing;
+    const uint32_t ulDefaultBytesToPing = 8UL;
+    char cBuffer[ 16 ];
+    uint16 NorFlagBuf[PAGESIZE];
+    uint16 NorDataBuf[PAGESIZE];
+    ( void ) pcCommandString;
+    configASSERT( pcWriteBuffer );
+
+    /* Start with an empty string. */
+    pcWriteBuffer[ 0 ] = 0x00;
+
+    /* Obtain the number of bytes to ping. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                2,                      /* Return the second parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    if( pcParameter == NULL )
+    {
+        /* The number of bytes was not specified, so default it. */
+        ulBytesToPing = ulDefaultBytesToPing;
+    }
+    else
+    {
+        ulBytesToPing = atol( pcParameter );
+    }
+
+    /* Obtain the IP address string. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                1,                      /* Return the first parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Sanity check something was returned. */
+    configASSERT( pcParameter );
+
+    /* Attempt to obtain the IP address.   If the first character is not a
+    digit, assume the host name has been passed in. */
+    if( ( *pcParameter >= '0' ) && ( *pcParameter <= '9' ) )
+    {
+        ulIPAddress = FreeRTOS_inet_addr( pcParameter );
+    }
+    else
+    {
+        /* Terminate the host name. */
+        pcParameter[ lParameterStringLength ] = 0x00;
+
+        /* Attempt to resolve host. */
+        ulIPAddress = FreeRTOS_gethostbyname( pcParameter );
+    }
+
+    /* Convert IP address, which may have come from a DNS lookup, to string. */
+    FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
+
+    if( ulIPAddress != 0 )
+    {
+        taskENTER_CRITICAL();
+
+        NorFastRead(NORFLAGPAGE * PAGESIZE, NorFlagBuf,PAGESIZE);
+        NorFastRead(NORDATAPAGE * PAGESIZE, NorDataBuf,PAGESIZE);
+        NorFlagBuf[IPOFFSET + 0] = (uint16)((IPMASK >> 24) & 0xFF);
+        NorFlagBuf[IPOFFSET + 1] = (uint16)((IPMASK >> 16) & 0xFF);
+        NorFlagBuf[IPOFFSET + 2] = (uint16)((IPMASK >> 8) & 0xFF);
+        NorFlagBuf[IPOFFSET + 3] = (uint16)(IPMASK & 0xFF);
+
+        NorDataBuf[IPOFFSET + 0] = (uint16)((ulIPAddress >> 24) & 0xFF);
+        NorDataBuf[IPOFFSET + 1] = (uint16)((ulIPAddress >> 16) & 0xFF);
+        NorDataBuf[IPOFFSET + 2] = (uint16)((ulIPAddress >> 8) & 0xFF);
+        NorDataBuf[IPOFFSET + 3] = (uint16)(ulIPAddress  & 0xFF);
+
+        NorSectorErase(DATASECTOR);
+        NorPageWrite(NORFLAGPAGE, NorFlagBuf);
+        NorPageWrite(NORDATAPAGE, NorDataBuf);
+        taskEXIT_CRITICAL();
+    }
+
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "IP set sucess!\r\n" );
+
+
+    return xReturn;
+}
+    /*-----------------------------------------------------------*/
+
+uint8  a2x(const char c)
+{
+    switch(c)
+    {
+        case '0'...'9':
+            return (unsigned char)atoi(&c);
+        case 'a'...'f':
+            return 0xa + (c-'a');
+        case 'A'...'F':
+            return 0xa + (c-'A');
+        default:
+            return 0;
+    }
+}
+void    COPY_STR2MAC(char *mac, char *str)
+{
+    uint8   i;
+    do{
+        for(i=0;i<6;i++)
+        {
+            mac[i] = (a2x(str[i*3]) << 4) + a2x(str[i*3 + 1]);
+        }
+    }while(0);
+}
+
+BaseType_t xSetMacCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+{
+    char * pcParameter;
+    BaseType_t lParameterStringLength;
+    uint32_t ulBytesToPing;
+    const uint32_t ulDefaultBytesToPing = 8UL;
+    char cBuffer[ 16 ];
+    uint16 NorFlagBuf[PAGESIZE];
+    uint16 NorDataBuf[PAGESIZE];
+    uint8  i;
+    ( void ) pcCommandString;
+    configASSERT( pcWriteBuffer );
+
+    /* Start with an empty string. */
+    pcWriteBuffer[ 0 ] = 0x00;
+
+    /* Obtain the number of bytes to ping. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                2,                      /* Return the second parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    if( pcParameter == NULL )
+    {
+        /* The number of bytes was not specified, so default it. */
+        ulBytesToPing = ulDefaultBytesToPing;
+    }
+    else
+    {
+        ulBytesToPing = atol( pcParameter );
+    }
+
+    /* Obtain the IP address string. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                1,                      /* Return the first parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Sanity check something was returned. */
+    configASSERT( pcParameter );
+
+    COPY_STR2MAC(cBuffer,pcParameter);
+
+    taskENTER_CRITICAL();
+
+    NorFastRead(NORFLAGPAGE * PAGESIZE, NorFlagBuf,PAGESIZE);
+    NorFastRead(NORDATAPAGE * PAGESIZE, NorDataBuf,PAGESIZE);
+
+    NorFlagBuf[MACOFFSET + 0] = (uint16)((MACMASK >> 24) & 0xFF);
+    NorFlagBuf[MACOFFSET + 1] = (uint16)((MACMASK >> 16) & 0xFF);
+    NorFlagBuf[MACOFFSET + 2] = (uint16)((MACMASK >> 8) & 0xFF);
+    NorFlagBuf[MACOFFSET + 3] = (uint16)(MACMASK & 0xFF);
+
+    for(i=0;i<6;i++)
+        NorDataBuf[MACOFFSET + i] = (uint16)cBuffer[i];
+
+    NorSectorErase(DATASECTOR);
+    NorPageWrite(NORFLAGPAGE, NorFlagBuf);
+    NorPageWrite(NORDATAPAGE, NorDataBuf);
+    taskEXIT_CRITICAL();
+
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "MAC set sucess!\r\n" );
+
+    return pdFALSE;
+}
+    /*-----------------------------------------------------------*/

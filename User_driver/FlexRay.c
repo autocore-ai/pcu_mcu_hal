@@ -1,25 +1,25 @@
-/*******************************************************************
- *
- *    DESCRIPTION: FlexRay configuration and Initialization of buffers
- *
- *    AUTHOR: AARORA
- *
- *    HISTORY: v1.1 12/05/2011
- *
- *******************************************************************/
+/******************************************************************
+FileName   :FlexRay.c
+Copy Right :
+System     :
+Module     :
+Author     :zhenhua.wang
+Create Date:2019-11-25
+****************************************************************/
 
 
 #include "Fr.h"
-	wrhs Fr_LPdu;
-	cfg Fr_Config;
-	bc Fr_LSdu1;
-	bc Fr_LSdu2;
 
-void configure_initialize_node_a(FRAY_ST *Fray_PST)
+wrhs    Fr_LPdu;
+cfg     Fr_Config;
+bc      Fr_LSdu1;
+bc      Fr_LSdu2;
+
+void configure_initialize_node_a(Fray_St *Fray_PST)
 {
-	wrhs *Fr_LPduPtr=&Fr_LPdu;
-	cfg *Fr_ConfigPtr=&Fr_Config;
-	bc *Fr_LSduPtr=&Fr_LSdu1;
+	wrhs    *Fr_LPduPtr=&Fr_LPdu;
+	cfg     *Fr_ConfigPtr=&Fr_Config;
+	bc      *Fr_LSduPtr=&Fr_LSdu1;
 
 	// GTUs, PRTC configuration
 	Fr_ConfigPtr->gtu1  = 0x00036B00; // pMicroPerCycle = 224000d = 36B00h
@@ -42,7 +42,7 @@ void configure_initialize_node_a(FRAY_ST *Fray_PST)
 
 
 	// Wait for PBSY bit to clear - POC not busy
-	while(((Fray_PST->SUCC1_UN.SUCC1_UL) & 0x00000080) != 0);
+	while(Fray_PST->SUCC1.bit.PBSY  != 0);
 	
 	// Initialize
 	Fr_Init(Fray_PST, Fr_ConfigPtr);
@@ -129,18 +129,18 @@ void configure_initialize_node_a(FRAY_ST *Fray_PST)
 
 	Fr_ControllerInit(Fray_PST);
 	// Initialize Interrupts
-	Fray_PST->EIR_UN.EIR_UL       = 0xFFFFFFFF; // Clear Error Int.
-	Fray_PST->SIR_UN.SIR_UL       = 0xFFFFFFFF; // Clear Status Int.
-	Fray_PST->SILS_UN.SILS_UL     = 0x00000000; // all Status Int. to eray_int0
-	Fray_PST->SIER_UN.SIER_UL     = 0xFFFFFFFF; // Disable all Status Int.
-	Fray_PST->SIES_UN.SIES_UL     = 0x00000004; // Enable CYCSE Int.
-	Fray_PST->ILE_UN.ILE_UL       = 0x00000002; // enable eray_int1
+	Fray_PST->EIR.all   = 0xFFFFFFFF; // Clear Error Int.
+	Fray_PST->SIR.all   = 0xFFFFFFFF; // Clear Status Int.
+	Fray_PST->SILS.all  = 0x00000000; // all Status Int. to eray_int0
+	Fray_PST->SIER.all  = 0xFFFFFFFF; // Disable all Status Int.
+	Fray_PST->SIES.all  = 0x00000004; // Enable CYCSE Int.
+	Fray_PST->ILE.all   = 0x00000002; // enable eray_int1
 
 	Fr_AllowColdStart(Fray_PST);
 }
 	
 
-int transmit_check_node_a(FRAY_ST *Fray_PST)
+int transmit_check_node_a(Fray_St *Fray_PST)
 {
 	bc *write_buffer=&Fr_LSdu1;
 	bc *read_buffer=&Fr_LSdu2;
@@ -154,9 +154,9 @@ int transmit_check_node_a(FRAY_ST *Fray_PST)
 	write_buffer->ibsyh = 1; // check for input buffer busy host
 
     // wait for cycle start interrupt flag
-    Fray_PST->SIR_UN.SIR_UL = 0xFFFFFFFF;            // clear all status int. flags
-    while ((Fray_PST->SIR_UN.SIR_UL & 0x4) == 0x0);    // wait for CYCS interrupt flag
-    Fray_PST->SIR_UN.SIR_UL = 0xFFFFFFFF;            // clear all status int. flags
+    Fray_PST->SIR.all = 0xFFFFFFFF;           // clear all status int. flags
+    while (Fray_PST->SIR.bit.CYCS == 0x0);    // wait for CYCS interrupt flag
+    Fray_PST->SIR.all = 0xFFFFFFFF;           // clear all status int. flags
 
 	// write payload for buffers
 	// buffer #1
@@ -175,7 +175,7 @@ int transmit_check_node_a(FRAY_ST *Fray_PST)
 	Fr_TransmitTxLPdu(Fray_PST, write_buffer);
 
 	 // check received frames
-    ndat1 = Fray_PST->NDAT1_UN.NDAT1_UL;
+    ndat1 = Fray_PST->NDAT1.all;
 
     // check if a message is received in buffer 2 from node B
     if ((ndat1 & 0x4) != 0)
@@ -190,11 +190,11 @@ int transmit_check_node_a(FRAY_ST *Fray_PST)
 	return error;
 }
 
-void configure_initialize_node_b(FRAY_ST *Fray_PST)
+void configure_initialize_node_b(Fray_St *Fray_PST)
 {
-	wrhs *Fr_LPduPtr=&Fr_LPdu;
-	cfg *Fr_ConfigPtr=&Fr_Config;
-	bc *Fr_LSduPtr=&Fr_LSdu1;
+	wrhs    *Fr_LPduPtr=&Fr_LPdu;
+	cfg     *Fr_ConfigPtr=&Fr_Config;
+	bc      *Fr_LSduPtr=&Fr_LSdu1;
 
 	// GTUs, PRTC configuration
 	Fr_ConfigPtr->gtu1  = 0x00036B00; // pMicroPerCycle = 224000d = 36B00h
@@ -217,7 +217,7 @@ void configure_initialize_node_b(FRAY_ST *Fray_PST)
 
 
 	// Wait for PBSY bit to clear - POC not busy
-	while(((Fray_PST->SUCC1_UN.SUCC1_UL) & 0x00000080) != 0);
+	while(Fray_PST->SUCC1.bit.PBSY != 0);
 	
 	// Initialize
 	Fr_Init(Fray_PST, Fr_ConfigPtr);
@@ -304,18 +304,18 @@ void configure_initialize_node_b(FRAY_ST *Fray_PST)
 
 	Fr_ControllerInit(Fray_PST);
 	// Initialize Interrupts
-	Fray_PST->EIR_UN.EIR_UL       = 0xFFFFFFFF; // Clear Error Int.
-	Fray_PST->SIR_UN.SIR_UL       = 0xFFFFFFFF; // Clear Status Int.
-	Fray_PST->SILS_UN.SILS_UL     = 0x00000000; // all Status Int. to eray_int0
-	Fray_PST->SIER_UN.SIER_UL     = 0xFFFFFFFF; // Disable all Status Int.
-	Fray_PST->SIES_UN.SIES_UL     = 0x00000004; // Enable CYCSE Int.
-	Fray_PST->ILE_UN.ILE_UL       = 0x00000002; // enable eray_int1
+	Fray_PST->EIR.all   = 0xFFFFFFFF; // Clear Error Int.
+	Fray_PST->SIR.all   = 0xFFFFFFFF; // Clear Status Int.
+	Fray_PST->SILS.all  = 0x00000000; // all Status Int. to eray_int0
+	Fray_PST->SIER.all  = 0xFFFFFFFF; // Disable all Status Int.
+	Fray_PST->SIES.all  = 0x00000004; // Enable CYCSE Int.
+	Fray_PST->ILE.all   = 0x00000002; // enable eray_int1
 
 	Fr_AllowColdStart(Fray_PST);
 }
 	
 
-int transmit_check_node_b(FRAY_ST *Fray_PST)
+int transmit_check_node_b(Fray_St *Fray_PST)
 {
 	bc *write_buffer=&Fr_LSdu1;
 	bc *read_buffer=&Fr_LSdu2;
@@ -329,9 +329,9 @@ int transmit_check_node_b(FRAY_ST *Fray_PST)
 	write_buffer->ibsyh = 1; // check for input buffer busy host
 
     // wait for cycle start interrupt flag
-    Fray_PST->SIR_UN.SIR_UL = 0xFFFFFFFF;            // clear all status int. flags
-    while ((Fray_PST->SIR_UN.SIR_UL & 0x4) == 0x0);    // wait for CYCS interrupt flag
-    Fray_PST->SIR_UN.SIR_UL = 0xFFFFFFFF;            // clear all status int. flags
+    Fray_PST->SIR.all  = 0xFFFFFFFF;            // clear all status int. flags
+    while (Fray_PST->SIR.bit.CYCS == 0x0);      // wait for CYCS interrupt flag
+    Fray_PST->SIR.all = 0xFFFFFFFF;             // clear all status int. flags
 
 	// write payload for buffers
 	// buffer #2
@@ -350,7 +350,7 @@ int transmit_check_node_b(FRAY_ST *Fray_PST)
 	Fr_TransmitTxLPdu(Fray_PST, write_buffer);
 
 	 // check received frames
-    ndat1 = Fray_PST->NDAT1_UN.NDAT1_UL;
+    ndat1 = Fray_PST->NDAT1.all ;
 
     // check if a message is received in buffer 2 from node A
     if ((ndat1 & 0x2) != 0)

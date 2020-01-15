@@ -167,8 +167,13 @@ uint8_t    FreeRTOS_UartInit(void)
     return val;
 }
 
-
-
+//========================================================================
+// 函数: UartSendString
+// 描述: 把一个字符串从串口发送出去.
+// 参数: msg,字符串指针.
+// 返回: none.
+// 版本: V1.0, 2013-4-29
+//========================================================================
 void UartSendString(sciBASE_t *sci, uint8 *msg)
 {
     uint8  i=0;
@@ -232,6 +237,68 @@ void    UartSendHexU16(sciBASE_t *sci,uint16 data)
         data >>= 4;
     }
     tmp[6] = '\0';
+    UartSendString(sci,tmp);
+}
+
+//========================================================================
+// 函数: UartSendHexU16
+// 描述: 把一个32位长整型数转成十进制送串口发送.
+// 参数: j: 要处理的32位整型数.
+// 返回: none.
+// 版本: V1.0, 2013-4-29
+//========================================================================
+void    UartSendMac(sciBASE_t *sci,uint8 data)
+{
+    uint8  i,k;
+    uint8  tmp[3];
+    for(i=2; i>0; i--)
+    {
+        k = ((uint8)data) & 0x0f;
+        if(k <= 9)
+            tmp[i-1] = k+'0';
+        else
+            tmp[i-1] = k-10+'A';
+        data >>= 4;
+    }
+    tmp[2] = '\0';
+    UartSendString(sci,tmp);
+}
+
+//========================================================================
+// 函数: UartSendHexU16
+// 描述: 把一个32位长整型数转成十进制送串口发送.
+// 参数: j: 要处理的32位整型数.
+// 返回: none.
+// 版本: V1.0, 2013-4-29
+//========================================================================
+void    UartSendByte(sciBASE_t *sci,uint8 data)
+{
+    uint8   i,count = 3;
+    uint8  tmp[4];
+    tmp[0] = data /100;
+    tmp[1] = ( data - tmp[0]*100 )/10;
+    tmp[2] = data - tmp[0]*100 - tmp[1]*10;
+    tmp[3] = '\0';
+    if(tmp[0] == 0 )
+    {
+        tmp[0] = tmp[1];
+        tmp[1] = tmp[2];
+        tmp[2] = '\0';
+        count--;
+    }
+    if(tmp[0] == 0)
+    {
+        tmp[0] = tmp[1];
+        tmp[1] = tmp[2];
+        tmp[2] = '\0';
+        count--;
+    }
+
+    for(i=0; i<count; i++)
+    {
+        if(tmp[i]<= 9)
+            tmp[i] = 0x30 + tmp[i];
+    }
     UartSendString(sci,tmp);
 }
 

@@ -22,6 +22,7 @@ void    HardwareInit(void)
     FreeRTOS_Phyinit();
     FreeRTOS_AdcInit();
     FreeRTOS_LinInit();
+//    RtcInit();
 
 //    FreeRTOS_udp_can_Init();
 

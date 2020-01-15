@@ -66,30 +66,30 @@ void    RtcInit(void)
 //    uint8   dat[10] = {0x00,0x00,0x00,0x34,0x23,0x05,0x15,0x03,0x05,0x19 };
 
     I2CInit(i2cREG1,400);
-    DelayUs(50);
+    DelayUs(5000);
 //    I2cWriteData(i2cREG1,RtcID,dat,RtcContrl1Reg,0x0a);
 
     RtcWrite(RtcContrl1Reg,0x00);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcContrl2Reg,0x00);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcContrl3Reg,0x00);
-    DelayUs(50);
+    DelayUs(500);
 
     RtcWrite(RtcYearReg,0x19);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcMonthReg,0x05);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcWeekReg,0x03);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcDayReg,0x15);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcHourReg,0x05);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcMinuteReg,0x23);
-    DelayUs(50);
+    DelayUs(500);
     RtcWrite(RtcSecondReg,0x34);
-    DelayUs(50);
+    DelayUs(500);
 
 }
 
@@ -103,12 +103,17 @@ void    RtcSetValue(Rtc_Timer  rtc)
 {
 
     RtcWrite(RtcYearReg,rtc.ryear);
+    DelayUs(100);
     RtcWrite(RtcMonthReg,rtc.rmouth);
+    DelayUs(100);
     RtcWrite(RtcDayReg,rtc.rday);
+    DelayUs(100);
     RtcWrite(RtcHourReg,rtc.rhour);
+    DelayUs(100);
     RtcWrite(RtcMinuteReg,rtc.rminute);
+    DelayUs(100);
     RtcWrite(RtcSecondReg,rtc.rsecond);
-
+    DelayUs(100);
 }
 
 /******************************************************

@@ -29,7 +29,9 @@ void    Uart3_RecvTask(void *pvParameters);
 void    Uart4_RecvTask(void *pvParameters);
 void    UartSendHexU32(sciBASE_t *sci,uint32 data);
 void    UartSendHexU16(sciBASE_t *sci,uint16 data);
+void    UartSendMac(sciBASE_t *sci,uint8 data);
 void    UartSendRtc(sciBASE_t *sci,uint8 data);
+void    UartSendByte(sciBASE_t *sci,uint8 data);
 
 
 #endif /* USER_DRIVER_SCI_DRIVER_H_ */

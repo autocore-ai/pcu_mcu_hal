@@ -48,7 +48,7 @@
 
 #include "HL_hw_reg_access.h"
 #include "HL_mdio.h"
-
+#include "hardware.h"
 /* USER CODE BEGIN (1) */
 /* FreeRTOS includes. */
 #include "FreeRTOS.h"
@@ -88,24 +88,31 @@ boolean MDIOPhyRegRead(uint32 baseAddr, uint32 phyAddr,
                             uint32 regNum, volatile uint16 * dataPtr)
 {
 	boolean retVal = FALSE;
-    /* Wait till transaction completion if any */
-    /*SAFETYMCUSW 28 D MR:NA <APPROVED> "Hardware status bit read check" */
-    while((HWREG(baseAddr + MDIO_USERACCESS0) & MDIO_USERACCESS0_GO) == MDIO_USERACCESS0_GO)
-    { 
-	} /* Wait */
+	uint16  delay;
+    delay = 500;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return retVal;
+        }
+        DelayUs(10);
+    }while((HWREG(baseAddr + MDIO_USERACCESS0) & MDIO_USERACCESS0_GO) == MDIO_USERACCESS0_GO);
 
     HWREG(baseAddr + MDIO_USERACCESS0)
                            = (((uint32)MDIO_USERACCESS0_READ) | MDIO_USERACCESS0_GO
                               |((regNum & PHY_REG_MASK) << PHY_REG_SHIFT)
                               |((phyAddr & PHY_ADDR_MASK) << PHY_ADDR_SHIFT));
 
-    /* wait for command completion */
-    /*SAFETYMCUSW 28 D MR:NA <APPROVED> "Hardware status bit read check" */
-    while((HWREG(baseAddr + MDIO_USERACCESS0) & MDIO_USERACCESS0_GO) == MDIO_USERACCESS0_GO)
-    { 
-    	/* Limiting CPU usage. */
-    	vTaskDelay(1);
-    } /* Wait */
+    delay = 500;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return retVal;
+        }
+        DelayUs(10);
+    }while((HWREG(baseAddr + MDIO_USERACCESS0) & MDIO_USERACCESS0_GO) == MDIO_USERACCESS0_GO);
 
     /* Store the data if the read is acknowledged */
     if(((HWREG(baseAddr + MDIO_USERACCESS0)) & MDIO_USERACCESS0_ACK) == MDIO_USERACCESS0_ACK)
@@ -209,7 +216,6 @@ void MDIOInit(uint32 baseAddr, uint32 mdioInputFreq,
    uint32 clkDiv =  (mdioInputFreq/mdioOutputFreq) - 1U;
    HWREG(baseAddr + MDIO_CONTROL) = ((clkDiv & MDIO_CONTROL_CLKDIV)
                                      | MDIO_CONTROL_ENABLE 
-                                     | MDIO_CONTROL_PREAMBLE
                                      | MDIO_CONTROL_FAULTENB);
 }
 

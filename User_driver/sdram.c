@@ -14,6 +14,10 @@ uint16      *ExRamStart = (uint16 *)0x80000000;
 void    sdram_test(void)
 {
     uint32  i;
+#if  (DEBUG)
+    UartSendString(sciREG1," Sdram testing, please wait !!! \r\n\0");
+#endif
+
     for(i = 0; i < RAM_SIZE/2; i++)
     {
         *(ExRamStart + i) = 0x5555;

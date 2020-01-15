@@ -10,6 +10,7 @@ C_SRCS += \
 ../User_driver/Can_driver.c \
 ../User_driver/FlexRay.c \
 ../User_driver/Fr.c \
+../User_driver/Ftu.c \
 ../User_driver/Gpio_driver.c \
 ../User_driver/IIC_driver.c \
 ../User_driver/Led.c \
@@ -31,6 +32,7 @@ C_DEPS += \
 ./User_driver/Can_driver.d \
 ./User_driver/FlexRay.d \
 ./User_driver/Fr.d \
+./User_driver/Ftu.d \
 ./User_driver/Gpio_driver.d \
 ./User_driver/IIC_driver.d \
 ./User_driver/Led.d \
@@ -52,6 +54,7 @@ OBJS += \
 ./User_driver/Can_driver.obj \
 ./User_driver/FlexRay.obj \
 ./User_driver/Fr.obj \
+./User_driver/Ftu.obj \
 ./User_driver/Gpio_driver.obj \
 ./User_driver/IIC_driver.obj \
 ./User_driver/Led.obj \
@@ -73,6 +76,7 @@ OBJS__QUOTED += \
 "User_driver\Can_driver.obj" \
 "User_driver\FlexRay.obj" \
 "User_driver\Fr.obj" \
+"User_driver\Ftu.obj" \
 "User_driver\Gpio_driver.obj" \
 "User_driver\IIC_driver.obj" \
 "User_driver\Led.obj" \
@@ -94,6 +98,7 @@ C_DEPS__QUOTED += \
 "User_driver\Can_driver.d" \
 "User_driver\FlexRay.d" \
 "User_driver\Fr.d" \
+"User_driver\Ftu.d" \
 "User_driver\Gpio_driver.d" \
 "User_driver\IIC_driver.d" \
 "User_driver\Led.d" \
@@ -115,6 +120,7 @@ C_SRCS__QUOTED += \
 "../User_driver/Can_driver.c" \
 "../User_driver/FlexRay.c" \
 "../User_driver/Fr.c" \
+"../User_driver/Ftu.c" \
 "../User_driver/Gpio_driver.c" \
 "../User_driver/IIC_driver.c" \
 "../User_driver/Led.c" \

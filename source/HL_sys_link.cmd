@@ -61,7 +61,7 @@ MEMORY
     RAM     (RW) : origin=(0x08004e00+0x00000800) length=(0x0007b200 - 0x00000800)
     
 /* USER CODE BEGIN (2) */
-	//SDRAM	(RW) : origin=0x80000000 length=0x00800000
+	SDRAM	(RW) : origin=0x80000000 length=0x00800000
 /* USER CODE END */
 }
 
@@ -84,8 +84,8 @@ SECTIONS
     /* FreeRTOS Kernel data in protected region of RAM */
     .kernelBSS    : {} > KRAM
     .kernelHEAP   : {} > RAM
-    .bss          : {} > RAM
-    .data         : {} > RAM    
+    .bss          : {} > SDRAM
+    .data         : {} > SDRAM
 
 /* USER CODE BEGIN (4) */
 //	.TI.noinit    : {} > SDRAM

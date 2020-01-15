@@ -13,6 +13,7 @@ Create Date:2019-05-28
 #include "HL_sys_common.h"
 #include "HL_gio.h"
 #include "HL_sci.h"
+#include "HL_mdio.h"
 #include "hardware.h"
 
 #define     MDC         0
@@ -21,6 +22,9 @@ Create Date:2019-05-28
 #define     DIR_OUT     1
 #define     LOW         0
 #define     HIGH        1
+
+#define     HWVER3      0
+
 
 void gioSetDir(gioPORT_t *port, uint8 bit, uint8 dir)
 {
@@ -44,7 +48,7 @@ void gioSetDir(gioPORT_t *port, uint8 bit, uint8 dir)
 *Params  :  phyreg  : PHY 寄存器地址
 *Return  :  读取的 PHY 寄存器的值
 *******************************************************/
-uint16    PhyRead(uint8 phyaddr,uint8   phyreg)
+uint16    PhyRead_io(uint8 phyaddr,uint8   phyreg)
 {
     uint8   i;
     uint16   frame = 0x06;
@@ -143,7 +147,7 @@ uint16    PhyRead(uint8 phyaddr,uint8   phyreg)
 *Params  :  data    : 要写入的数据
 *******************************************************/
 
-void    PhyWrite(uint8 phyaddr,uint8   phyreg, uint16 data)
+void    PhyWrite_io(uint8 phyaddr,uint8   phyreg, uint16 data)
 {
     uint8   i;
     uint16   frame = 0x05;
@@ -243,6 +247,40 @@ void    PhyWrite(uint8 phyaddr,uint8   phyreg, uint16 data)
     }
 }
 
+
+/******************************************************
+*Name    :  PhyWrite
+*Function:  写 PHY 寄存器函数
+*Params  :  phyaddr : PHY 地址
+*Params  :  phyreg  : PHY 寄存器地址
+*Params  :  data    : 要写入的数据
+*******************************************************/
+void    PhyWrite(uint8 phyaddr,uint8   phyreg, uint16 data)
+{
+    #if (HWVER3)
+        MDIOPhyRegWrite(MDIO_BASE,phyaddr,phyreg,data);
+    #else
+        PhyWrite_io(phyaddr,phyreg, data);
+    #endif
+}
+/******************************************************
+*Name    :  PhyRead_io
+*Function:  读 PHY 寄存器函数
+*Params  :  phyaddr : PHY 地址
+*Params  :  phyreg  : PHY 寄存器地址
+*Return  :  读取的 PHY 寄存器的值
+*******************************************************/
+uint16    PhyRead(uint8 phyaddr,uint8   phyreg)
+{
+    uint16  value;
+    #if (HWVER3)
+        MDIOPhyRegRead(MDIO_BASE,phyaddr,phyreg,&value);
+    #else
+        value = PhyRead_io(phyaddr, phyreg);
+    #endif
+    return value;
+}
+
 /******************************************************
 *Name    :  ReadPhyID
 *Function:  读 PHY ID 函数
@@ -254,7 +292,6 @@ uint32 ReadPhyID(uint8 phyAddr)
 {
     uint32 id = 0U;
     uint16 data = 0U;
-
     data = PhyRead( phyAddr, (uint8)PHY_ID1);
     id = (uint32)data;
     id = (uint32)((uint32)id << PHY_ID_SHIFT);
@@ -358,6 +395,7 @@ uint8 Phy_init(uint32 phyAddr)
     return 1;
 }
 
+
 /******************************************************
 *Name    :  FreeRTOS_Phyinit
 *Function:  初始化函数所有 PHY
@@ -371,79 +409,25 @@ uint8   FreeRTOS_Phyinit(void)
     gioSetBit(gioPORTB,PHY_RST_PIN,0);
     DelayUs(150);
     gioSetBit(gioPORTB,PHY_RST_PIN,1);
-    gioSetBit(gioPORTA,PHY_EN_PIN,1);
+    Phy1En_on();
+    Phy2En_on();
+
+    #if (HWVER3)
+        MDIOInit(MDIO_BASE,MDIO_FREQ_INPUT,MDIO_FREQ_OUTPUT);
+    #endif
+
     DelayUs(100000);
 
     flag = Phy_init(PHY1_RMII_P0);
     flag = flag << 1;
     flag |= Phy_init(PHY2_RMII_P0);
 
+    #if (HWVER3)
+        MDIODisable(MDIO_BASE);
+    #endif
+
     return flag;
 }
-/*
-#pragma CODE_STATE(gioLow_HwiISR, 32)
-#pragma INTERRUPT(gioLow_HwiISR, IRQ)
-
-void gioLow_HwiISR(void)
-{
-    uint32 offset = gioREG->OFF2;
-    uint16  temp;
-
-    if (offset != 0U)
-    {
-        offset = offset - 1U;
-        if (offset >= 8U)
-        {
-            if (offset == 14 )
-            {
-                temp = PhyRead(PHY2_RMII_P0,PHY_INTR);
-
-                if(temp & 0x400)
-                {
-                    UartSendString(sciREG1," TJA1102  P0 link status   :  Down \r\n\0");
-                    LedP2Status_off();
-                }
-                else if (temp & 0x200)
-                {
-                    UartSendString(sciREG1," TJA1102  P0 link status   :  Up \r\n\0");
-                    LedP2Status_on();
-                }
-
-                temp = PhyRead(PHY2_RMII_P1,PHY_INTR);
-                if( temp & 0x400 )
-                {
-                    UartSendString(sciREG1," TJA1102  P1 link status   :  Down \r\n\0");
-                    LedP3Status_off();
-                }
-                else if (temp & 0x200 )
-                {
-                    UartSendString(sciREG1," TJA1102  P1 link status   :  Up \r\n\0");
-                    LedP3Status_on();
-                }
-            }
-            else if (offset == 15)
-            {
-                temp = PhyRead(PHY1_RMII_P0,PHY_INTR);
-
-                if(temp & 0x400 )
-                {
-                    UartSendString(sciREG1," TJA1102S P0 link status   :  Down \r\n\0");
-                    LedP1Status_off();
-                }
-                else if (temp & 0x200 )
-                {
-                    UartSendString(sciREG1," TJA1102S P0 link status   :  Up \r\n\0");
-                    LedP1Status_on();
-                }
-            }
-        }
-        else
-        {
-            gioNotification(gioPORTA, offset);
-        }
-    }
-}
-*/
 
 /******************************************************
 *Name    :  PHY3_IntISR

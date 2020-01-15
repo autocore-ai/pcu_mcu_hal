@@ -12,6 +12,7 @@ Create Date:2019-04-30
 
 #include "HL_i2c.h"
 #include "HL_reg_i2c.h"
+#include "HL_reg_system.h"
 #include "hardware.h"
 
 /******************************************************
@@ -39,6 +40,10 @@ void I2CGpio(i2cBASE_t *I2C)
     /** - set i2c pins pullup/pulldown select */
     I2C->PSEL = (uint32)((uint32)1U << 1U)          /* sda pin */
                  | (uint32)(1U);                    /* scl pin */
+    /** - set i2c pins Slew Rate Select Register */
+    I2C->PSRS = (uint32)((uint32)1U << 1U)          /* sda pin */
+                 | (uint32)(1U);                    /* scl pin */
+
 }
 
 
@@ -93,6 +98,14 @@ void I2CInit(i2cBASE_t *I2C, uint16 speed)
     }
 
     I2CGpio(I2C);
+    /** - set interrupt enable */
+    i2cREG1->IMR    = (uint32)((uint32)0U << 6U)     /* Address as slave interrupt      */
+                    | (uint32)((uint32)0U << 5U)     /* Stop Condition detect interrupt */
+                    | (uint32)((uint32)0U << 4U)     /* Transmit data ready interrupt   */
+                    | (uint32)((uint32)0U << 3U)     /* Receive data ready interrupt    */
+                    | (uint32)((uint32)0U << 2U)     /* Register Access ready interrupt */
+                    | (uint32)((uint32)0U << 1U)     /* No Acknowledgment interrupt    */
+                    | (uint32)((uint32)0U);          /* Arbitration Lost interrupt      */
 
     I2C->MDR |= I2C_RESET_OUT; /* i2c out of reset */
 }
@@ -118,6 +131,7 @@ uint16 I2CXrdy(i2cBASE_t *I2C)
 {
     uint16  t;
     t = I2C->STR & 0x0010;
+    t = t >> 4;
     return t;
 }
 /******************************************************
@@ -130,6 +144,7 @@ uint16 I2CRrdy(i2cBASE_t *I2C)
 {
     uint16  t;
     t = I2C->STR & 0x0008;
+    t = t >> 3;
     return t;
 }
 
@@ -143,6 +158,7 @@ uint16 I2CBusy(i2cBASE_t *I2C)
 {
     uint16  t;
     t = I2C->STR & 0x1000;
+    t = t >> 12;
     return t;
 }
 
@@ -156,21 +172,62 @@ uint16 I2CBusy(i2cBASE_t *I2C)
 *******************************************************/
 uint8 I2cWrite(i2cBASE_t *I2C,uint8 id,uint16 reg_addr,uint8 data)
 {
-    if (I2CBusy(I2C))
-    {
-        return 0;
-    }
-    while(!I2CXrdy(I2C));
+    uint16  delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    } while(I2CBusy(I2C));     //Bus busy
+
+    delay = 50000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            UartSendString(sciREG1," First Txrdy  overtime : \r\n\0");
+            systemREG1->SYSECR |= 0x0000C000;
+            return 0;
+        }
+    }while(!I2CXrdy(I2C));
 
     I2C->SAR = id;
     I2C->CNT = 2;
     I2C->DXR = reg_addr & 0xFF;
     I2C->MDR = 0x6E20;
-    while(!I2CXrdy(I2C));
+
+    delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(I2C->STR & 0x2);
+
+    delay = 50000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            UartSendString(sciREG1," Second Txrdy  overtime : \r\n\0");
+            systemREG1->SYSECR |= 0x0000C000;
+            return 0;
+        }
+    }while(!I2CXrdy(I2C));
+
     I2C->DXR = data & 0xFF;
 
-    if (I2C->STR & 0x0002)
-       return 0;
+    delay = 10000;
+    do{
+        delay--;
+        if(delay == 0)
+        {
+            return 0;
+        }
+    }while(I2C->STR & 0x2);
+
     return 1;
 }
 
@@ -183,36 +240,83 @@ uint8 I2cWrite(i2cBASE_t *I2C,uint8 id,uint16 reg_addr,uint8 data)
 *******************************************************/
 uint8  I2cRead(i2cBASE_t *I2C,uint8 id,uint16 reg_addr)
 {
-    uint8  data;
+    uint8   data;
+    uint16  delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    } while(I2CBusy(I2C));     //Bus busy
 
-    if (I2CBusy(I2C))//Bus busy
-    {
-        return 0;
-    }
-
-    while(!I2CXrdy(I2C));
+    delay = 50000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(!I2CXrdy(I2C));
 
     I2C->SAR = id;
     I2C->CNT = 1;
     I2C->DXR = reg_addr & 0xFF;
     I2C->MDR = 0x6e20;
 
-    if (I2C->STR & 0x02)
-        return 0;
+    delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(I2C->STR & 0x2);
 
-    DelayUs(50);
-    while(!I2CXrdy(I2C));
+
+    DelayUs(100);
+
+    delay = 50000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(!I2CXrdy(I2C));
+
     I2C->SAR = id;
     I2C->CNT = 1;
     I2C->MDR = 0x6C20;
 
-    if (I2C->STR & 0x2)
-        return 0;
-    while(!I2CRrdy(I2C));
+    delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(I2C->STR & 0x2);
+
+    delay = 50000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(!I2CRrdy(I2C));
 
     data = I2C->DRR & 0xFF;
-    if (I2C->STR & 0x2)
-        return 0;
+    delay = 10000;
+    do{
+        delay--;
+        if(delay == 0)
+        {
+            return 0;
+        }
+    }while(I2C->STR & 0x2);
+
     return data;
 }
 
@@ -229,26 +333,60 @@ uint8  I2cRead(i2cBASE_t *I2C,uint8 id,uint16 reg_addr)
 uint8 I2cWriteData(i2cBASE_t *I2C,uint8 id,uint8  *RamAddr, uint8    RomAddress, uint8 count)
 {
     uint8   i;
-    if (I2CBusy(I2C))
-    {
-        return 0;
-    }
-    while(!I2CXrdy(I2C));
+    uint16  delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    } while(I2CBusy(I2C));     //Bus busy
+
+    delay = 50000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(!I2CXrdy(I2C));
 
     I2C->SAR = id;
     I2C->CNT = count+1;
     I2C->DXR = RomAddress;
     I2C->MDR = 0x6E20;
 
+    delay = 10000;
+    do{
+        delay--;
+        if(delay <= 10)
+        {
+            return 0;
+        }
+    }while(I2C->STR & 0x2);
+
     for(i=0;i<count;i++)
     {
-        while(!I2CXrdy(I2C));
+        delay = 50000;
+        do{
+            delay--;
+            if(delay <= 10)
+            {
+                return 0;
+            }
+        }while(!I2CXrdy(I2C));
 
         I2C->DXR = *RamAddr;
         RamAddr++;
 
-        if (I2C->STR & 0x0002)
-           return 0;
+        delay = 10000;
+        do{
+            delay--;
+            if(delay == 0)
+            {
+                return 0;
+            }
+        }while(I2C->STR & 0x2);
     }
     return 1;
 }
@@ -266,39 +404,80 @@ uint8 I2cWriteData(i2cBASE_t *I2C,uint8 id,uint8  *RamAddr, uint8    RomAddress,
 uint8 I2cReadData(i2cBASE_t *I2C,uint8 id,uint8  *RamAddr, uint8    RomAddress, uint8 count)
 {
    uint8  i,data;
+   uint16   delay = 10000;
+   do{
+       delay--;
+       if(delay <= 10)
+       {
+           return 0;
+       }
+   }while(I2CBusy(I2C));
 
-   if (I2CBusy(I2C))//Bus busy
-   {
-       return 0;
-   }
-
-   while(!I2CXrdy(I2C));
+   delay = 50000;
+   do{
+       delay--;
+       if(delay <= 10)
+       {
+           return 0;
+       }
+   }while(!I2CXrdy(I2C));
 
    I2C->SAR = id;
    I2C->CNT = 1;
    I2C->DXR = RomAddress;
    I2C->MDR = 0x6e20;
+   delay = 10000;
+   do{
+       delay--;
+       if(delay <= 10)
+       {
+           return 0;
+       }
+   }while(I2C->STR & 0x2);
 
-   if (I2C->STR & 0x02)
-       return 0;
-
-   DelayUs(50);
-   while(!I2CXrdy(I2C));
+   DelayUs(100);
+   delay = 50000;
+   do{
+       delay--;
+       if(delay <= 10)
+       {
+           return 0;
+       }
+   }while(!I2CXrdy(I2C));
 
    I2C->SAR = id;
    I2C->CNT = count;
    I2C->MDR = 0x6C20;
-
-   if (I2C->STR & 0x2)
-       return 0;
+   delay = 10000;
+   do{
+       delay--;
+       if(delay <= 10)
+       {
+           return 0;
+       }
+   }while(I2C->STR & 0x2);
 
    for(i=0;i<count;i++)
    {
-       while(!I2CRrdy(I2C));
+       delay = 50000;
+       do{
+           delay--;
+           if(delay <= 10)
+           {
+               return 0;
+           }
+       }while(!I2CRrdy(I2C));
 
       data = I2C->DRR & 0xFF;
-      if (I2C->STR & 0x2)
-          return 0;
+      delay = 10000;
+      do{
+          delay--;
+          if(delay <= 10)
+          {
+              return 0;
+          }
+      }while(I2C->STR & 0x2);
+
       *RamAddr = data;
       RamAddr++;
    }

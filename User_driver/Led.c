@@ -36,6 +36,8 @@ void    LedInit(void)
                  | (uint32) ((uint32)1U << 29U)
                  | (uint32) ((uint32)1U << 27U)
                  | (uint32) ((uint32)1U << 25U)
+                 | (uint32) ((uint32)1U << 23U)
+                 | (uint32) ((uint32)1U << 21U)
                  | (uint32) ((uint32)1U << 18U)
                  | (uint32) ((uint32)1U << 16U)
                  | (uint32) ((uint32)1U << 14U);
@@ -199,3 +201,47 @@ void    LedP3Status_off(void)
 {
     hetREG1->DCLR = (uint32)(1 << P3100M_STATUS);
 }
+
+/******************************************************
+*Name    : Phy1En_on
+*Function: PHY1  enable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy1En_on(void)
+{
+    hetREG1->DSET = (uint32)(1 << PHY1_EN);
+}
+
+/******************************************************
+*Name    : Phy1En_off
+*Function: PHY1  disable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy1En_off(void)
+{
+    hetREG1->DCLR = (uint32)(1 << PHY1_EN);
+}
+/******************************************************
+*Name    : Phy2En_on
+*Function: PHY2  enable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy2En_on(void)
+{
+    hetREG1->DSET = (uint32)(1 << PHY2_EN);
+}
+
+/******************************************************
+*Name    : Phy2En_off
+*Function: PHY2  disable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy2En_off(void)
+{
+    hetREG1->DCLR = (uint32)(1 << PHY2_EN);
+}
+

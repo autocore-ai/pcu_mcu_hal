@@ -87,4 +87,24 @@ static const CLI_Command_Definition_t xNetStat =
 	( pdCOMMAND_LINE_CALLBACK ) xNetStatCommand,
 	0 /* No parameters are expected. */
 };
+BaseType_t xSetIpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setip" command line command. */
+static const CLI_Command_Definition_t xSetip =
+{
+    ( const char *) "setip",
+    ( const char *) "\r\nsetip <ipaddress> \r\n for example, setip 192.168.1.3 \r\n",
+    ( pdCOMMAND_LINE_CALLBACK ) xSetIpCommand,
+    -1
+};
+
+BaseType_t xSetMacCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setmac" command line command. */
+static const CLI_Command_Definition_t xSetmac =
+{
+    ( const char *) "setmac",
+    ( const char *) "\r\nsetmac <macaddress> \r\n for example, setmac  00:04:9F:06:30:FE \r\n",
+    ( pdCOMMAND_LINE_CALLBACK )  xSetMacCommand,
+    -1
+};
+
 #endif /* CLI_COMMANDS_H_ */
