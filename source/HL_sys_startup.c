@@ -95,10 +95,6 @@ void _c_int00(void);
 /* Requirements : HL_CONQ_STARTUP_SR1 */
 void _c_int00(void)
 {
-
-/* USER CODE BEGIN (5) */
-/* USER CODE END */
-
     /* Initialize Core Registers to avoid CCM Error */
     _coreInitRegisters_();
     /* Initialize Stack Pointers */
@@ -112,127 +108,64 @@ void _c_int00(void)
         case POWERON_RESET:
         case DEBUG_RESET:
         case EXT_RESET:
-
-/* USER CODE BEGIN (6) */
-/* USER CODE END */
-
         /* Initialize L2RAM to avoid ECC errors right after power on */
         _memInit_();
 
-/* USER CODE BEGIN (7) */
-/* USER CODE END */
-
-/* USER CODE BEGIN (8) */
-/* USER CODE END */
-
-
-/* USER CODE BEGIN (9) */
-/* USER CODE END */
-
-        /* Enable CPU Event Export */
-        /* This allows the CPU to signal any single-bit or double-bit errors detected
-         * by its ECC logic for accesses to program flash or data RAM.
-         */
         _coreEnableEventBusExport_();
 
-/* USER CODE BEGIN (10) */
-/* USER CODE END */
-
-        /* Check if there were ESM group3 errors during power-up.
-         * These could occur during eFuse auto-load or during reads from flash OTP
-         * during power-up. Device operation is not reliable and not recommended
-         * in this case. */
         if ((esmREG->SR1[2]) != 0U)
         {
            esmGroup3Notification(esmREG,esmREG->SR1[2]);               
         }
 
-        /* Initialize System - Clock, Flash settings with Efuse self check */
         systemInit();
 
-/* USER CODE BEGIN (11) */
-/* USER CODE END */
-
-        /* Enable IRQ offset via Vic controller */
         _coreEnableIrqVicOffset_();
-            
-        /* Initialize VIM table */
+
         vimInit();
 
-/* USER CODE BEGIN (12) */
-/* USER CODE END */
-        /* Configure system response to error conditions signaled to the ESM group1 */
-        /* This function can be configured from the ESM tab of HALCoGen */
         esmInit();
-
-/* USER CODE BEGIN (13) */
-/* USER CODE END */
 
         break;
 
         case OSC_FAILURE_RESET:
-/* USER CODE BEGIN (14) */
-/* USER CODE END */
         break;
 
         case WATCHDOG_RESET:
         case WATCHDOG2_RESET:
-/* USER CODE BEGIN (15) */
-/* USER CODE END */
+
+//            _coreEnableIrqVicOffset_();
+
+            vimInit();
+//            esmInit();
+
         break;
     
         case CPU0_RESET:
-/* USER CODE BEGIN (16) */
-/* USER CODE END */
 
-/* USER CODE BEGIN (17) */
-/* USER CODE END */
+         _coreEnableEventBusExport_();
 
-/* USER CODE BEGIN (18) */
-/* USER CODE END */
 
-        /* Enable CPU Event Export */
-        /* This allows the CPU to signal any single-bit or double-bit errors detected
-         * by its ECC logic for accesses to program flash or data RAM.
-         */
-        _coreEnableEventBusExport_();
-
-/* USER CODE BEGIN (19) */
-/* USER CODE END */
         break;
     
         case SW_RESET:
-/* USER CODE BEGIN (20) */
-/* USER CODE END */
         break;
     
         default:
-/* USER CODE BEGIN (21) */
-/* USER CODE END */
+
         break;
     }
 
-/* USER CODE BEGIN (22) */
-/* USER CODE END */
 
     _mpuInit_();
 
-/* USER CODE BEGIN (23) */
-/* USER CODE END */
-
     _cacheEnable_();
 
-/* USER CODE BEGIN (24) */
-/* USER CODE END */
-
     systemInit();
-/* USER CODE BEGIN (25) */
-/* USER CODE END */
 
-        /* initialize global variable and constructors */
-    __TI_auto_init();
-/* USER CODE BEGIN (26) */
-/* USER CODE END */
+    vimInit();
+
+     __TI_auto_init();
     
         /* call the application */
 /*SAFETYMCUSW 296 S MR:8.6 <APPROVED> "Startup code(library functions at block scope)" */

@@ -27,6 +27,7 @@ C_SRCS += \
 ../source/HL_esm.c \
 ../source/HL_etpwm.c \
 ../source/HL_gio.c \
+../source/HL_i2c.c \
 ../source/HL_lin.c \
 ../source/HL_mdio.c \
 ../source/HL_nmpu.c \
@@ -64,6 +65,7 @@ C_DEPS += \
 ./source/HL_esm.d \
 ./source/HL_etpwm.d \
 ./source/HL_gio.d \
+./source/HL_i2c.d \
 ./source/HL_lin.d \
 ./source/HL_mdio.d \
 ./source/HL_nmpu.d \
@@ -101,6 +103,7 @@ OBJS += \
 ./source/HL_esm.obj \
 ./source/HL_etpwm.obj \
 ./source/HL_gio.obj \
+./source/HL_i2c.obj \
 ./source/HL_lin.obj \
 ./source/HL_mdio.obj \
 ./source/HL_nmpu.obj \
@@ -150,6 +153,7 @@ OBJS__QUOTED += \
 "source\HL_esm.obj" \
 "source\HL_etpwm.obj" \
 "source\HL_gio.obj" \
+"source\HL_i2c.obj" \
 "source\HL_lin.obj" \
 "source\HL_mdio.obj" \
 "source\HL_nmpu.obj" \
@@ -192,6 +196,7 @@ C_DEPS__QUOTED += \
 "source\HL_esm.d" \
 "source\HL_etpwm.d" \
 "source\HL_gio.d" \
+"source\HL_i2c.d" \
 "source\HL_lin.d" \
 "source\HL_mdio.d" \
 "source\HL_nmpu.d" \
@@ -236,6 +241,7 @@ C_SRCS__QUOTED += \
 "../source/HL_esm.c" \
 "../source/HL_etpwm.c" \
 "../source/HL_gio.c" \
+"../source/HL_i2c.c" \
 "../source/HL_lin.c" \
 "../source/HL_mdio.c" \
 "../source/HL_nmpu.c" \

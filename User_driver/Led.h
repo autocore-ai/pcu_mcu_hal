@@ -15,6 +15,9 @@
 #define P3100M_STATUS   30U
 #define P2100M_STATUS   16U
 #define P1100M_STATUS   27U
+#define PHY1_EN         21U
+#define PHY2_EN         23U
+
 
 /******************************************************
 *Name    :  LedInit
@@ -140,5 +143,36 @@ void    LedP3Status_on(void);
 *******************************************************/
 void    LedP3Status_off(void);
 
+/******************************************************
+*Name    : Phy1En_on
+*Function: PHY1  enable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy1En_on(void);
+
+/******************************************************
+*Name    : Phy1En_off
+*Function: PHY1  disable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy1En_off(void);
+
+/******************************************************
+*Name    : Phy2En_on
+*Function: PHY2  enable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy2En_on(void);
+
+/******************************************************
+*Name    : Phy2En_off
+*Function: PHY2  disable
+*Params  :
+*Return  :
+*******************************************************/
+void    Phy2En_off(void);
 
 #endif /* USER_DRIVER_LED_H_ */

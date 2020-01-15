@@ -12,4 +12,6 @@
 	<createSlaveProjects value=""/>
 	<templateProperties value="id=com.ti.common.project.core.emptyProjectTemplate"/>
 	<filesToOpen value=""/>
+	<isTargetManual value="false"/>
+	<origin value="C:/Users/zhenh/Downloads/pcu_mcu-HAL_dev/pcu_mcu-HAL_dev"/>
 </projectOptions>

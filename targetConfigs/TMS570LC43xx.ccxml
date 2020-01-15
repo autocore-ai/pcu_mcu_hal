@@ -6,8 +6,31 @@
             <instance XML_version="1.2" href="drivers/tixds100v2icepick_c.xml" id="drivers" xml="tixds100v2icepick_c.xml" xmlpath="drivers"/>
             <instance XML_version="1.2" href="drivers/tixds100v2cs_dap.xml" id="drivers" xml="tixds100v2cs_dap.xml" xmlpath="drivers"/>
             <instance XML_version="1.2" href="drivers/tixds100v2cortexR.xml" id="drivers" xml="tixds100v2cortexR.xml" xmlpath="drivers"/>
+            <property Type="choicelist" Value="0" id="The Converter Usage">
+                <choice Name="Its bypassed, use 1149.1, mimic XDS100v2" value="nothing">
+                    <property Type="choicelist" Value="0" id="The Emulator 1149.1 Frequency">
+                        <choice Name="Fixed with user specified slower value" value="specific">
+                            <property Type="stringfield" Value="10KHz" id="-- Enter a value from 488Hz to 1.0MHz"/>
+                        </choice>
+                    </property>
+                </choice>
+            </property>
             <platform XML_version="1.2" id="platform_0">
                 <instance XML_version="1.2" desc="TMS570LC43xx" href="devices/tms570lc43xx.xml" id="TMS570LC43xx" xml="tms570lc43xx.xml" xmlpath="devices"/>
+            <device HW_revision="1" XML_version="1.2" description="TMS570LC43xx BGA, 4MB Flash, 512kB RAM, 2ch FlexRay, 10/100M Ethernet" id="TMS570LC43xx" partnum="TMS570LC43xx" simulation="no">
+                    <router HW_revision="1.0" XML_version="1.2" description="ICEPick_C Router" id="IcePick_C_0" isa="ICEPICK_C">
+                        <subpath id="Port16">
+                            <router HW_revision="" XML_version="1.2" description="CS_DAP Router" id="CS_DAP_0" isa="CS_DAP">
+                                <property Type="choicelist" Value="0" id="Device Management"/>
+                            <property Type="choicelist" Value="0" id="bypass"/>
+                            </router>
+                        </subpath>
+                    <subpath id="Port17">
+                            <property Type="choicelist" Value="1" id="Force Configuration"/>
+                        <property Type="choicelist" Value="0" id="Initial Configuration"/>
+                        </subpath>
+                    </router>
+                </device>
             </platform>
         </connection>
     </configuration>

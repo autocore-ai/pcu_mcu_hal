@@ -24,7 +24,7 @@ typedef enum phyTimeStamp
 }phyTimeStamp_t;
 */
 
-#define PHY_EN_PIN      0x04        //GPIOA4
+#define FR_EN_PIN       0x04        //GPIOA4
 
 #define PHY_RST_PIN     0x05        //GPIOB5
 #define PHY_INT12_PIN   0x06        //GPIOB6

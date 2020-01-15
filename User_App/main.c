@@ -63,10 +63,10 @@
 
 uint8 emacAddress[6U] = {0x00U, 0x08U, 0xEEU, 0x03U, 0xA6U, 0x6CU};
 uint32 emacPhyAddress = 1U;
-static const uint8_t ucIPAddress[4] = {configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3};
-static const uint8_t ucNetMask[4] = {configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3};
-static const uint8_t ucGatewayAddress[4] = {configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3};
-static const uint8_t ucDNSServerAddress[4] = {configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3};
+uint8_t ucIPAddress[4] = {configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3};
+uint8_t ucNetMask[4] = {configNET_MASK0, configNET_MASK1, configNET_MASK2, configNET_MASK3};
+uint8_t ucGatewayAddress[4] = {configGATEWAY_ADDR0, configGATEWAY_ADDR1, configGATEWAY_ADDR2, configGATEWAY_ADDR3};
+uint8_t ucDNSServerAddress[4] = {configDNS_SERVER_ADDR0, configDNS_SERVER_ADDR1, configDNS_SERVER_ADDR2, configDNS_SERVER_ADDR3};
 
 /* Task handlers */
 xTaskHandle xTask1Handle, xTask2Handle, xServerWorkTaskHandle;
@@ -102,23 +102,24 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
 /* RAM disk mount point */
 #define mainRAM_DISK_NAME           "/ram"
 //static uint8_t ucRAMDisk[ mainRAM_DISK_SECTORS * mainRAM_DISK_SECTOR_SIZE ] __attribute__ ((section(".sdram")));
-static uint8_t ucRAMDisk[ mainRAM_DISK_SECTORS * mainRAM_DISK_SECTOR_SIZE ];
+//static uint8_t ucRAMDisk[ mainRAM_DISK_SECTORS * mainRAM_DISK_SECTOR_SIZE ];
 
 /** ***************************************************************************************************
  * @fn      void main(void)
  * @brief   main function. MUX
  */
 void main(void)
-{
+ {
     /* Initialize HALCoGen driver. */
     gioInit();
 
     gioSetDirection(gioPORTB,((1<<PHY_RST_PIN) | (1 <<0) | (1<<1)));
-    gioSetDirection(gioPORTA,1<<PHY_EN_PIN);
+    gioSetDirection(gioPORTA,1<<FR_EN_PIN);
     gioSetBit(gioPORTB,PHY_RST_PIN,1);
 
     sciInit();
     HardwareInit();
+    SetIpMac();
 
     _enable_IRQ();
 
@@ -134,15 +135,17 @@ void main(void)
     FreeRTOS_CLIRegisterCommand( &xPing );
     FreeRTOS_CLIRegisterCommand( &xNetStat );
     FreeRTOS_CLIRegisterCommand( &xReset );
+    FreeRTOS_CLIRegisterCommand( &xSetip );
+    FreeRTOS_CLIRegisterCommand( &xSetmac );
 
     /* Register some more filesystem related commands, like dir, cd, pwd ... */
-    vRegisterFileSystemCLICommands();
+//    vRegisterFileSystemCLICommands();
 
     xTaskCreate(vTask1, "HeartBeat", configMINIMAL_STACK_SIZE * 10, NULL, tskIDLE_PRIORITY + 3  | portPRIVILEGE_BIT, &xTask1Handle);
     FreeRTOS_IPInit(ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, emacAddress);
 
 //------------------------wzh--------------------------
-    FreeRTOS_udp_can_Init();
+//    FreeRTOS_udp_can_Init();
 
 
     /* Start the command interpreter */
@@ -200,7 +203,7 @@ void vTask1(void *pvParameters)
             flag = 1;
         }
 
-//        rt = RtcGetValue();
+        rt = RtcGetValue();
 
 /*
         UartSendString(sciREG1," Rtc Timer = \0");
@@ -210,7 +213,6 @@ void vTask1(void *pvParameters)
         UartSendString(sciREG1," : \0");
         UartSendRtc(sciREG1,rt.rsecond);
         UartSendString(sciREG1,"\r\n\0");
-
 */
         vTaskDelay(pdMS_TO_TICKS(200));
 
