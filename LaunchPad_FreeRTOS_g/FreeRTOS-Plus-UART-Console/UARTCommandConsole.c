@@ -107,7 +107,6 @@ extern xTaskHandle xTask2Handle;
 extern void vTask2(void *pvParameters);
 /*-----------------------------------------------------------*/
 
-/* MPU és a timeout megvalósítás miatt privilegizált futtatás kellett - ennek majd utána kéne nézni */
 void vStartUARTCommandInterpreterTask( void )
 {
 	xTaskCreate( 	prvUARTCommandConsoleTask,				/* The task that implements the command console. */
@@ -140,10 +139,9 @@ portBASE_TYPE xReturned;
 	xConsoleUART = FreeRTOS_open( boardCOMMAND_CONSOLE_UART, ( uint32_t ) cmdPARAMTER_NOT_USED );
 	configASSERT( xConsoleUART );
 
-	//Ez akkor már mûködik, ha kell.. (300 baud már mûködik)
 	//FreeRTOS_ioctl(xConsoleUART, ioctlSET_SPEED, (void*)19200);
-	//FreeRTOS_ioctl(xConsoleUART, ioctlSET_SPEED, (void*)115200);
-	FreeRTOS_ioctl(xConsoleUART, ioctlSET_SPEED, (void*)230400);
+	FreeRTOS_ioctl(xConsoleUART, ioctlSET_SPEED, (void*)115200);
+//	FreeRTOS_ioctl(xConsoleUART, ioctlSET_SPEED, (void*)230400);
 
 	/* Change the Tx usage model from straight polled mode to use zero copy
 	buffers with interrupts.  In this mode, the UART will transmit characters
@@ -161,7 +159,6 @@ portBASE_TYPE xReturned;
 	can only be received as quickly as they can be typed, and need to be parsed
 	character by character. */
 
-	// TODO ioctlUSE_CIRCULAR_BUFFER_RX mód is megeszi az interruptot néha..
 	//xReturned = FreeRTOS_ioctl( xConsoleUART, ioctlUSE_CIRCULAR_BUFFER_RX, ( void * ) 20 );
 	xReturned = FreeRTOS_ioctl( xConsoleUART, ioctlUSE_CHARACTER_QUEUE_RX, ( void * ) cmdMAX_INPUT_SIZE );
 	configASSERT( xReturned );
@@ -176,11 +173,9 @@ portBASE_TYPE xReturned;
 	//xReturned = FreeRTOS_ioctl( xConsoleUART, ioctlSET_INTERRUPT_PRIORITY, ( void * ) ( configMIN_LIBRARY_INTERRUPT_PRIORITY - 1 ) );
 	//configASSERT( xReturned );
 
-	/* RX timeout beállítása. alaphelyzetben 0xffffffff ~ 4000000 sec ~ 49 nap ettõl függetlenül lehetne valami olyasmit, hogy no timeout*/
 	//xReturned = FreeRTOS_ioctl( xConsoleUART, ioctlSET_RX_TIMEOUT, ( void * ) ( 0xffffffff ) );
 	//configASSERT( xReturned );
 
-	/* Kitöröljük a cInputString-et, hogy már az elsõ parancs feldolgozásánál se legyen gond */
 	memset( cInputString, 0x00, cmdMAX_INPUT_SIZE );
 
 	/* Send the welcome message. */
@@ -316,24 +311,26 @@ void vOutputString(uint8_t * pucMessage )
 /*-----------------------------------------------------------*/
 
 void vLoggingPrintf( const char *pcFormatString, ... )
-	{
+{
+/*
 	static char cBuffer[configCOMMAND_INT_MAX_OUTPUT_SIZE];
 	static unsigned int xMissedMessageCounter = 0;
 	static unsigned int xIndex = 0;
 	va_list args;
-//		if( xConsoleUART != NULL )
-//		{
-//			if( FreeRTOS_ioctl( xConsoleUART, ioctlOBTAIN_WRITE_MUTEX, (void *)portMAX_DELAY ) == pdPASS )
-//			{
-//				va_start(args, pcFormatString);
-//				vsnprintf(&cBuffer[xIndex], configCOMMAND_INT_MAX_OUTPUT_SIZE - xIndex, pcFormatString, args);
-//				va_end(args);
-//				FreeRTOS_write( xConsoleUART, cBuffer, strlen(( char * ) cBuffer) );
-//			}
-//			else
-//			{
-//				xMissedMessageCounter++;
-//			}
-//		}
-	}
+    if( xConsoleUART != NULL )
+    {
+        if( FreeRTOS_ioctl( xConsoleUART, ioctlOBTAIN_WRITE_MUTEX, (void *)portMAX_DELAY ) == pdPASS )
+        {
+            va_start(args, pcFormatString);
+            vsnprintf(&cBuffer[xIndex], configCOMMAND_INT_MAX_OUTPUT_SIZE - xIndex, pcFormatString, args);
+            va_end(args);
+            FreeRTOS_write( xConsoleUART, cBuffer, strlen(( char * ) cBuffer) );
+        }
+        else
+        {
+            xMissedMessageCounter++;
+        }
+    }
+*/
+}
 

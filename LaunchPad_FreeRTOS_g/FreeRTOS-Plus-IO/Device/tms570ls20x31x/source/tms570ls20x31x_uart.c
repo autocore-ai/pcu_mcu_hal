@@ -44,7 +44,7 @@
 * @file tms570ls20x31x_uart.c
 *   @brief FreeRTOS-Plus-IO Uart Driver Implmentation File
 *   @date 12.Aug.2014
-*   @version 00.00.02
+*   @version 00.00.02  sciREG4
 *
 */
 
@@ -70,7 +70,7 @@
 #include "sys_main.h"
 
 /* HALCoGen generated sci API. */
-#include <HL_sci.c>
+//#include <HL_sci.c>
 
 /* Stores the transfer control structures that are currently in use by the
 supported UART ports. */
@@ -546,13 +546,13 @@ portBASE_TYPE FreeRTOS_UART_ioctl( Peripheral_Descriptor_t pxPeripheral, uint32_
 				//dmaEnableInterrupt(ulValue, BTC);
 				dmaEnableInterrupt((dmaChannel_t)ulValue, BTC, DMA_INTA);
 
-				if(pxUART == sciREG1)
+				if(pxUART == sciREG4)
 				{
 					/* Assigning DMA xDMAChannel with request line-29  - TX*/
 					dmaReqAssign((dmaChannel_t)ulValue,(dmaRequest_t)29);
 					xUartTX_DMA_Channels[0]=ulValue;
 				}
-				else if(pxUART == sciREG2)
+				else if(pxUART == sciREG3)
 				{
 					/* Assigning DMA xDMAChannel with request line-21  - TX*/
 					dmaReqAssign((dmaChannel_t)ulValue,(dmaRequest_t)21);
@@ -592,17 +592,18 @@ portBASE_TYPE FreeRTOS_UART_ioctl( Peripheral_Descriptor_t pxPeripheral, uint32_
 portBASE_TYPE xFreeRTOSsciInit(sciBASE_t *sci)
 {
 	portBASE_TYPE xReturn=pdTRUE;
-	if(sci == sciREG1)
+	if(sci == sciREG4)
 	{
-		vimRAM->ISR[14] = &vFreeRTOSsci1Interrupt;
-		vimRAM->ISR[28] = &vFreeRTOSsci1Interrupt;
+		vimRAM->ISR[117] = &vFreeRTOSsci4Interrupt;
+		vimRAM->ISR[120] = &vFreeRTOSsci4Interrupt;
 	}
-	else if(sci == sciREG2)
+	else if(sci == sciREG3)
 	{
-		vimRAM->ISR[50] = &vFreeRTOSsci2Interrupt;
-		vimRAM->ISR[55] = &vFreeRTOSsci2Interrupt;
+		vimRAM->ISR[63] = &vFreeRTOSsci3Interrupt;
+		vimRAM->ISR[73] = &vFreeRTOSsci3Interrupt;
 	}
-	else xReturn=pdFALSE;
+	else
+	    xReturn=pdFALSE;
 	return xReturn;
 }
 #endif
@@ -613,13 +614,13 @@ portBASE_TYPE xFreeRTOSsciInit(sciBASE_t *sci)
 	portBASE_TYPE xReturn=pdTRUE;
 	if(sci == sciREG1)		// LIN
 	{
-		vimRAM->ISR[16] = &vFreeRTOSsci1Interrupt;
-		vimRAM->ISR[28] = &vFreeRTOSsci1Interrupt;
+		vimRAM->ISR[16] = &vFreeRTOSsci4Interrupt;
+		vimRAM->ISR[28] = &vFreeRTOSsci4Interrupt;
 	}
 	else if(sci == sciREG2)	// SCI
 	{
-		vimRAM->ISR[65] = &vFreeRTOSsci2Interrupt;
-		vimRAM->ISR[75] = &vFreeRTOSsci2Interrupt;
+		vimRAM->ISR[65] = &vFreeRTOSsci3Interrupt;
+		vimRAM->ISR[75] = &vFreeRTOSsci3Interrupt;
 	}
 	else xReturn=pdFALSE;
 	return xReturn;
@@ -642,34 +643,37 @@ portBASE_TYPE xFreeRTOSsciSetInterruptPriority(sciBASE_t *sci, uint8_t priority)
 	uint32_t xTemp;
 	if(priority <= maxNumericalIrqPriority)
 	{
-		if(sci == sciREG1)
+		if(sci == sciREG4)
 		{
-			/* Set SCI1 high priority (ISR[14]) interrupt priority. */
-			xTemp = vimREG->CHANCTRL[3];
-			xTemp &= 0xffff00ff;
-			xTemp |= (priority << 8);
-			vimREG->CHANCTRL[3] = xTemp;
+			/* Set SCI1 high priority (ISR[117]) interrupt priority. */
 
-			/* Set SCI1 low priority (ISR[28]) interrupt priority. */
-			xTemp = vimREG->CHANCTRL[7];
+			xTemp = vimREG->CHANCTRL[29];
+			xTemp &= 0xff00ffff;
+			xTemp |= (priority << 16);
+			vimREG->CHANCTRL[29] = xTemp;
+
+		    /* Set SCI1 low priority (ISR[120]) interrupt priority. */
+
+			xTemp = vimREG->CHANCTRL[30];
 			xTemp &= 0x00ffffff;
 			xTemp |= (priority << 24);
-			vimREG->CHANCTRL[7] = xTemp;
+			vimREG->CHANCTRL[30] = xTemp;
+
 			xReturn=pdTRUE;
 		}
-		else if(sci == sciREG2)
+		else if(sci == sciREG3)
 		{
-			/* Set SCI2 high priority (ISR[50]) interrupt priority. */
-			xTemp = vimREG->CHANCTRL[12];
-			xTemp &= 0xffff00ff;
-			xTemp |= (priority << 8);
-			vimREG->CHANCTRL[12] = xTemp;
-
-			/* Set SCI2 low priority (ISR[55]) interrupt priority. */
-			xTemp = vimREG->CHANCTRL[13];
+			/* Set SCI2 high priority (ISR[63]) interrupt priority. */
+			xTemp = vimREG->CHANCTRL[15];
 			xTemp &= 0xffffff00;
-			xTemp |= (priority );
-			vimREG->CHANCTRL[13] = xTemp;
+			xTemp |= (priority << 0);
+			vimREG->CHANCTRL[15] = xTemp;
+
+			/* Set SCI2 low priority (ISR[73]) interrupt priority. */
+			xTemp = vimREG->CHANCTRL[18];
+			xTemp &= 0xff00ffff;
+			xTemp |= (priority << 16 );
+			vimREG->CHANCTRL[18] = xTemp;
 			xReturn=pdTRUE;
 		}
 	}
@@ -681,8 +685,8 @@ portBASE_TYPE xFreeRTOSsciSetInterruptPriority(sciBASE_t *sci, uint8_t priority)
 * @fn void vFreeRTOSsci1Interrupt(void)
 * @brief High Level Interrupt for SCI1 in FreeRTOS-Plus-IO compatibility mode
 */
-#pragma INTERRUPT(vFreeRTOSsci1Interrupt, IRQ)
-void vFreeRTOSsci1Interrupt(void)
+#pragma INTERRUPT(vFreeRTOSsci4Interrupt, IRQ)
+void vFreeRTOSsci4Interrupt(void)
 {
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	Transfer_Control_t *pxTransferStruct;
@@ -690,7 +694,7 @@ void vFreeRTOSsci1Interrupt(void)
 	uint32_t ulReceived;
 	const unsigned portBASE_TYPE uxUARTNumber = 0UL;
 
-	uint32 vec = sciREG1->INTVECT0;
+	uint32 vec = sciREG4->INTVECT0;
 	switch (vec)
 	{
 	    case 1:					// SCI_WAKE_INT
@@ -713,8 +717,8 @@ void vFreeRTOSsci1Interrupt(void)
 						ioutilsRX_CHARS_INTO_QUEUE_FROM_ISR
 							(
 							pxTransferStruct,
-							sciIsRxReady(sciREG1),
-							sciREG1->RD,
+							sciIsRxReady(sciREG4),
+							sciREG4->RD,
 							ulReceived,
 							xHigherPriorityTaskWoken
 							);
@@ -729,8 +733,8 @@ void vFreeRTOSsci1Interrupt(void)
 						ioutilsRX_CHARS_INTO_CIRCULAR_BUFFER_FROM_ISR
 							(
 							pxTransferStruct, 		/* The structure that contains the reference to the circular buffer. */
-							sciIsRxReady(sciREG1), 	/* While loop condition. */
-							sciREG1->RD,			/* Register holding the received character. */
+							sciIsRxReady(sciREG4), 	/* While loop condition. */
+							sciREG4->RD,			/* Register holding the received character. */
 							ulReceived,
 							xHigherPriorityTaskWoken
 							);
@@ -759,7 +763,7 @@ void vFreeRTOSsci1Interrupt(void)
 					pxTransferStruct = pxUartTxTransferControlStructs[uxUARTNumber];
 					pxZeroCopyState = ( Zero_Copy_Tx_State_t * ) ( pxTransferStruct )->pvTransferState;
 					xSemaphoreGiveFromISR( pxZeroCopyState->xWriteAccessMutex, &( xHigherPriorityTaskWoken ) );
-					sciREG1->CLRINT = SCI_TX_INT;
+					sciREG4->CLRINT = SCI_TX_INT;
 				}
 				#else
 				configASSERT(0);
@@ -770,13 +774,13 @@ void vFreeRTOSsci1Interrupt(void)
 					pxZeroCopyState = ( Zero_Copy_Tx_State_t * ) ( pxTransferStruct )->pvTransferState;
 					if(pxZeroCopyState->usBufferLength != 0U)
 					{
-						sciREG1->TD = pxZeroCopyState->pucBufferStart[0];
+						sciREG4->TD = pxZeroCopyState->pucBufferStart[0];
 						(pxZeroCopyState->pucBufferStart)++;
 						pxZeroCopyState->usBufferLength--;
 					}
 					else
 						{
-						sciREG1->CLRINT = SCI_TX_INT;
+						sciREG4->CLRINT = SCI_TX_INT;
 						xSemaphoreGiveFromISR( pxZeroCopyState->xWriteAccessMutex, &( xHigherPriorityTaskWoken ) );
 						}
 					#else
@@ -793,14 +797,14 @@ void vFreeRTOSsci1Interrupt(void)
 							ioutilsTX_CHARS_FROM_QUEUE_FROM_ISR
 								(
 								pxTransferStruct,
-								( sciREG1->FLR & SCI_TX_INT ),
-								( sciREG1->TD = ucChar ),
+								( sciREG4->FLR & SCI_TX_INT ),
+								( sciREG4->TD = ucChar ),
 								xHigherPriorityTaskWoken
 								);
 						}
 						else
 						{
-							sciREG1->CLRINT = SCI_TX_INT;
+							sciREG4->CLRINT = SCI_TX_INT;
 						}
 
 					}
@@ -817,7 +821,7 @@ void vFreeRTOSsci1Interrupt(void)
 		break;
 
 	default:	/* phantom interrupt, clear flags and return */
-		sciREG1->FLR = ~sciREG1->SETINTLVL & 0x07000303U;
+		sciREG4->FLR = ~sciREG4->SETINTLVL & 0x07000303U;
 	}
 	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
@@ -826,8 +830,8 @@ void vFreeRTOSsci1Interrupt(void)
 /** @fn void vFreeRTOSsci2Interrupt(void)
 *   @brief High Level Interrupt for SCI2 in FreeRTOS-Plus-IO compatibility mode
 */
-#pragma INTERRUPT(vFreeRTOSsci2Interrupt, IRQ)
-void vFreeRTOSsci2Interrupt(void)
+#pragma INTERRUPT(vFreeRTOSsci3Interrupt, IRQ)
+void vFreeRTOSsci3Interrupt(void)
 {
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	Transfer_Control_t *pxTransferStruct;
@@ -835,7 +839,7 @@ void vFreeRTOSsci2Interrupt(void)
 	uint32_t ulReceived;
 	const unsigned portBASE_TYPE uxUARTNumber = 1UL;
 
-	uint32 vec = sciREG2->INTVECT0;
+	uint32 vec = sciREG3->INTVECT0;
 	switch (vec)
 	{
 	    case 1:					// SCI_WAKE_INT
@@ -858,8 +862,8 @@ void vFreeRTOSsci2Interrupt(void)
 						ioutilsRX_CHARS_INTO_QUEUE_FROM_ISR
 							(
 							pxTransferStruct,
-							sciIsRxReady(sciREG2),
-							sciREG2->RD,
+							sciIsRxReady(sciREG3),
+							sciREG3->RD,
 							ulReceived,
 							xHigherPriorityTaskWoken
 							);
@@ -874,8 +878,8 @@ void vFreeRTOSsci2Interrupt(void)
 						ioutilsRX_CHARS_INTO_CIRCULAR_BUFFER_FROM_ISR
 							(
 							pxTransferStruct, 		/* The structure that contains the reference to the circular buffer. */
-							sciIsRxReady(sciREG2), 	/* While loop condition. */
-							sciREG2->RD,			/* Register holding the received character. */
+							sciIsRxReady(sciREG3), 	/* While loop condition. */
+							sciREG3->RD,			/* Register holding the received character. */
 							ulReceived,
 							xHigherPriorityTaskWoken
 							);
@@ -904,7 +908,7 @@ void vFreeRTOSsci2Interrupt(void)
 					pxTransferStruct = pxUartTxTransferControlStructs[uxUARTNumber];
 					pxZeroCopyState = ( Zero_Copy_Tx_State_t * ) ( pxTransferStruct )->pvTransferState;
 					xSemaphoreGiveFromISR( pxZeroCopyState->xWriteAccessMutex, &( xHigherPriorityTaskWoken ) );
-					sciREG2->CLRINT = SCI_TX_INT;
+					sciREG3->CLRINT = SCI_TX_INT;
 				}
 				#else
 				configASSERT(0);
@@ -916,13 +920,13 @@ void vFreeRTOSsci2Interrupt(void)
 					pxZeroCopyState = ( Zero_Copy_Tx_State_t * ) ( pxTransferStruct )->pvTransferState;
 					if(pxZeroCopyState->usBufferLength != 0U)
 					{
-						sciREG2->TD = pxZeroCopyState->pucBufferStart[0];
+						sciREG3->TD = pxZeroCopyState->pucBufferStart[0];
 						(pxZeroCopyState->pucBufferStart)++;
 						pxZeroCopyState->usBufferLength--;
 					}
 					else
 						{
-						sciREG2->CLRINT = SCI_TX_INT;
+						sciREG3->CLRINT = SCI_TX_INT;
 						xSemaphoreGiveFromISR( pxZeroCopyState->xWriteAccessMutex, &( xHigherPriorityTaskWoken ) );
 						}
 					#else
@@ -939,14 +943,14 @@ void vFreeRTOSsci2Interrupt(void)
 							ioutilsTX_CHARS_FROM_QUEUE_FROM_ISR
 								(
 								pxTransferStruct,
-								( sciREG2->FLR & SCI_TX_INT ),
-								( sciREG2->TD = ucChar ),
+								( sciREG3->FLR & SCI_TX_INT ),
+								( sciREG3->TD = ucChar ),
 								xHigherPriorityTaskWoken
 								);
 						}
 						else
 						{
-							sciREG2->CLRINT = SCI_TX_INT;
+							sciREG3->CLRINT = SCI_TX_INT;
 						}
 					}
 					#else
@@ -962,7 +966,7 @@ void vFreeRTOSsci2Interrupt(void)
 		break;
 
 	default:	/* phantom interrupt, clear flags and return */
-		sciREG2->FLR = ~sciREG2->SETINTLVL & 0x07000303U;
+		sciREG3->FLR = ~sciREG3->SETINTLVL & 0x07000303U;
 	}
 	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
@@ -978,7 +982,7 @@ portBASE_TYPE xFreeRTOSsciCommand(sciBASE_t *sci, sciCommand_t command )
 {
 	portBASE_TYPE xReturn=pdTRUE;
 
-	if(sci == sciREG1 || sci == sciREG2)
+	if(sci == sciREG4 || sci == sciREG3)
 	{
 		switch(command)
 		{

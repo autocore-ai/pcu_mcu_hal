@@ -30,7 +30,7 @@ typedef enum
 portBASE_TYPE xFreeRTOSsciCommand(sciBASE_t *sci, sciCommand_t order );
 portBASE_TYPE xFreeRTOSsciInit(sciBASE_t *sci);
 portBASE_TYPE xFreeRTOSsciSetInterruptPriority(sciBASE_t *sci, uint8_t priority);
-void vFreeRTOSsci1Interrupt(void);
-void vFreeRTOSsci2Interrupt(void);
+void vFreeRTOSsci4Interrupt(void);
+void vFreeRTOSsci3Interrupt(void);
 void dmaConfigCtrlTxPacket(uint32 sadd, uint32 dadd, uint32 dsize);
 #endif

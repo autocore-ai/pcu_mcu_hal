@@ -82,8 +82,8 @@
 
 #define boardAVAILABLE_DEVICES_LIST												\
 {																				\
-	{ ( const int8_t * const ) "/UART0/", eUART_TYPE, ( void * ) sciREG1 },		\
-	{ ( const int8_t * const ) "/UART1/", eUART_TYPE, ( void * ) sciREG2 }		\
+	{ ( const int8_t * const ) "/UART0/", eUART_TYPE, ( void * ) sciREG4 },		\
+	{ ( const int8_t * const ) "/UART1/", eUART_TYPE, ( void * ) sciREG3 }		\
 }
 
 /*******************************************************************************

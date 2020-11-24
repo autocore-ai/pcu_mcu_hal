@@ -92,8 +92,8 @@ void vFreeRTOS_DMA_BTCA_Interrupt(void)
 		}
 		else
 			{
-			sciREG1->CLRINT=(1U<<16U);	/* SCI_DISABLE_TX_DMA_MODE */
-			sciREG1->SETINT=(1U<<8U);	/* SCI_ENABLE_TX_INT_MODE */
+			sciREG4->CLRINT=(1U<<16U);	/* SCI_DISABLE_TX_DMA_MODE */
+			sciREG4->SETINT=(1U<<8U);	/* SCI_ENABLE_TX_INT_MODE */
 			}
 		#else
 		configASSERT(0);
@@ -121,8 +121,8 @@ void vFreeRTOS_DMA_BTCA_Interrupt(void)
 		}
 		else
 			{
-			sciREG2->CLRINT=(1U<<16U);	/* SCI_DISABLE_TX_DMA_MODE */
-			sciREG2->SETINT=(1U<<8U);	/* SCI_ENABLE_TX_INT_MODE */
+			sciREG3->CLRINT=(1U<<16U);	/* SCI_DISABLE_TX_DMA_MODE */
+			sciREG3->SETINT=(1U<<8U);	/* SCI_ENABLE_TX_INT_MODE */
 			}
 		#else
 		configASSERT(0);
