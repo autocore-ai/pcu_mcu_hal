@@ -77,6 +77,9 @@
 #include "NetworkInterface.h"
 #include "NetworkBufferManagement.h"
 #include "FreeRTOS_DNS.h"
+#if( ipconfigUSE_PTP == 1 )
+    #include "FreeRTOS_PTP.h"
+#endif
 
 
 /* Used to ensure the structure packing is having the desired effect.  The
@@ -1279,6 +1282,17 @@ const EthernetHeader_t *pxEthernetHeader;
 	}
 	else
 #endif /* ipconfigUSE_LLMNR */
+#if( ipconfigUSE_PTP == 1 )
+    if( memcmp( ( void * ) xPTP_MacAdress.ucBytes, ( void * ) pxEthernetHeader->xDestinationAddress.ucBytes, sizeof( MACAddress_t ) ) == 0 )
+    {
+        eReturn = eProcessBuffer;
+    }
+    else if( memcmp( ( void * ) xPTP_Peer_MacAdress.ucBytes, ( void * ) pxEthernetHeader->xDestinationAddress.ucBytes, sizeof( MACAddress_t ) ) == 0 )
+    {
+        eReturn = eProcessBuffer;
+    }
+    else
+#endif
 	{
 		/* The packet was not a broadcast, or for this node, just release
 		the buffer without taking any other action. */
@@ -1486,6 +1500,10 @@ eFrameProcessingResult_t eReturn = eProcessBuffer;
 				/* Is it the LLMNR multicast address? */
 				( ulDestinationIPAddress != ipLLMNR_IP_ADDR ) &&
 			#endif
+            #if( ipconfigUSE_PTP == 1 )
+                ( ulDestinationIPAddress != ipPTP_IP_ADDR ) &&
+                ( ulDestinationIPAddress != ipPTP_PEER_IP_ADDR ) &&
+            #endif
 				/* Or (during DHCP negotiation) we have no IP-address yet? */
 				( *ipLOCAL_IP_ADDRESS_POINTER != 0UL ) )
 			{

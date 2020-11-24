@@ -56,7 +56,7 @@
  */
 
 /*
- * NTPDemo.c
+ * NTPDemo.c FreeRTOS_gethostbyname_a
  *
  * An example of how to lookup a domain using DNS
  * And also how to send and receive UDP messages to get the NTP time

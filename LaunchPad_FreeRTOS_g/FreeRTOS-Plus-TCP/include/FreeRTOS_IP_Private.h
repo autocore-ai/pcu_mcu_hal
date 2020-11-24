@@ -96,7 +96,7 @@ struct xETH_HEADER
 	MACAddress_t xDestinationAddress; /*  0 + 6 = 6  */
 	MACAddress_t xSourceAddress;      /*  6 + 6 = 12 */
 	uint16_t usFrameType;              /* 12 + 2 = 14 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xETH_HEADER EthernetHeader_t;
 
@@ -112,7 +112,7 @@ struct xARP_HEADER
 	uint32_t ulSenderProtocolAddress;		/* 14 +  4 = 18  */
 	MACAddress_t xTargetHardwareAddress;	/* 18 +  6 = 24  */
 	uint32_t ulTargetProtocolAddress;		/* 24 +  4 = 28  */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xARP_HEADER ARPHeader_t;
 
@@ -129,7 +129,7 @@ struct xIP_HEADER
 	uint16_t usHeaderChecksum;            /* 10 + 2 = 12 */
 	uint32_t ulSourceIPAddress;           /* 12 + 4 = 16 */
 	uint32_t ulDestinationIPAddress;      /* 16 + 4 = 20 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xIP_HEADER IPHeader_t;
 
@@ -140,7 +140,7 @@ struct xIGMP_HEADER
 	uint8_t ucMaxResponseTime; /* 1 + 1 = 2 */
 	uint16_t usChecksum;       /* 2 + 2 = 4 */
 	uint32_t usGroupAddress;   /* 4 + 4 = 8 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xIGMP_HEADER IGMPHeader_t;
 
@@ -152,7 +152,7 @@ struct xICMP_HEADER
 	uint16_t usChecksum;       /* 2 + 2 = 4 */
 	uint16_t usIdentifier;     /* 4 + 2 = 6 */
 	uint16_t usSequenceNumber; /* 6 + 2 = 8 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xICMP_HEADER ICMPHeader_t;
 
@@ -163,7 +163,7 @@ struct xUDP_HEADER
 	uint16_t usDestinationPort; /* 2 + 2 = 4 */
 	uint16_t usLength;          /* 4 + 2 = 6 */
 	uint16_t usChecksum;        /* 6 + 2 = 8 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xUDP_HEADER UDPHeader_t;
 
@@ -183,7 +183,7 @@ struct xTCP_HEADER
 	/* the option data is not a part of the TCP header */
 	uint8_t  ucOptdata[ipSIZE_TCP_OPTIONS];		/* + 12 = 32 */
 #endif
-}
+};
 #include "pack_struct_end.h"
 typedef struct xTCP_HEADER TCPHeader_t;
 
@@ -195,7 +195,7 @@ struct xPSEUDO_HEADER
 	uint8_t ucZeros;
 	uint8_t ucProtocol;
 	uint16_t usUDPLength;
-}
+};
 #include "pack_struct_end.h"
 typedef struct xPSEUDO_HEADER PseudoHeader_t;
 
@@ -208,7 +208,7 @@ struct xARP_PACKET
 {
 	EthernetHeader_t xEthernetHeader;	/*  0 + 14 = 14 */
 	ARPHeader_t xARPHeader;			/* 14 + 28 = 42 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xARP_PACKET ARPPacket_t;
 
@@ -217,7 +217,7 @@ struct xIP_PACKET
 {
 	EthernetHeader_t xEthernetHeader;
 	IPHeader_t xIPHeader;
-}
+};
 #include "pack_struct_end.h"
 typedef struct xIP_PACKET IPPacket_t;
 
@@ -227,7 +227,7 @@ struct xICMP_PACKET
 	EthernetHeader_t xEthernetHeader;
 	IPHeader_t xIPHeader;
 	ICMPHeader_t xICMPHeader;
-}
+};
 #include "pack_struct_end.h"
 typedef struct xICMP_PACKET ICMPPacket_t;
 
@@ -237,7 +237,7 @@ struct xUDP_PACKET
 	EthernetHeader_t xEthernetHeader; /*  0 + 14 = 14 */
 	IPHeader_t xIPHeader;             /* 14 + 20 = 34 */
 	UDPHeader_t xUDPHeader;           /* 34 +  8 = 42 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xUDP_PACKET UDPPacket_t;
 
@@ -247,7 +247,7 @@ struct xTCP_PACKET
 	EthernetHeader_t xEthernetHeader; /*  0 + 14 = 14 */
 	IPHeader_t xIPHeader;             /* 14 + 20 = 34 */
 	TCPHeader_t xTCPHeader;           /* 34 + 32 = 66 */
-}
+};
 #include "pack_struct_end.h"
 typedef struct xTCP_PACKET TCPPacket_t;
 
@@ -320,7 +320,7 @@ struct xUDP_IP_FRAGMENT_PARAMETERS
 	uint16_t usFragmentedPacketOffset;
 	uint16_t usFragmentLength;
 	uint16_t usPayloadChecksum;
-}
+};
 #include "pack_struct_end.h"
 typedef struct xUDP_IP_FRAGMENT_PARAMETERS IPFragmentParameters_t;
 

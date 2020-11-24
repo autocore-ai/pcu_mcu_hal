@@ -135,7 +135,7 @@ typedef struct xNETWORK_BUFFER
 struct xMAC_ADDRESS
 {
 	uint8_t ucBytes[ ipMAC_ADDRESS_LENGTH_BYTES ];
-}
+};
 #include "pack_struct_end.h"
 typedef struct xMAC_ADDRESS MACAddress_t;
 

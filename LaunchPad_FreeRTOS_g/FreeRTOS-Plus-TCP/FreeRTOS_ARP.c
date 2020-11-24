@@ -75,6 +75,9 @@
 #if( ipconfigUSE_LLMNR == 1 )
 	#include "FreeRTOS_DNS.h"
 #endif /* ipconfigUSE_LLMNR */
+#if( ipconfigUSE_PTP == 1 )
+    #include "FreeRTOS_PTP.h"
+#endif
 #include "NetworkInterface.h"
 #include "NetworkBufferManagement.h"
 
@@ -405,7 +408,20 @@ uint32_t ulAddressToLookup;
 	}
 	else
 #endif
-	if( ( *pulIPAddress == ipBROADCAST_IP_ADDRESS ) ||	/* Is it the general broadcast address 255.255.255.255? */
+#if( ipconfigUSE_PTP == 1 )
+    if( *pulIPAddress == ipPTP_IP_ADDR )
+    {
+        memcpy( pxMACAddress->ucBytes, xPTP_MacAdress.ucBytes, sizeof( MACAddress_t ) );
+        eReturn = eARPCacheHit;
+    }
+    else if( *pulIPAddress == ipPTP_PEER_IP_ADDR )
+    {
+        memcpy( pxMACAddress->ucBytes, xPTP_Peer_MacAdress.ucBytes, sizeof( MACAddress_t ) );
+        eReturn = eARPCacheHit;
+    }
+    else
+#endif
+	    if( ( *pulIPAddress == ipBROADCAST_IP_ADDRESS ) ||	/* Is it the general broadcast address 255.255.255.255? */
 		( *pulIPAddress == xNetworkAddressing.ulBroadcastAddress ) )/* Or a local broadcast address, eg 192.168.1.255? */
 	{
 		/* This is a broadcast so uses the broadcast MAC address. */

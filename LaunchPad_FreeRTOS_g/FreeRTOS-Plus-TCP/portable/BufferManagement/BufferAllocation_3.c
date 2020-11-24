@@ -69,7 +69,7 @@
 
 /* FreeRTOS+TCP includes. */
 #include "FreeRTOS_IP.h"
-#include "FreeRTOS_sockets.h"
+#include "FreeRTOS_Sockets.h"
 #include "FreeRTOS_IP_Private.h"
 #include "FreeRTOS_UDP_IP.h"
 #include "NetworkInterface.h"
@@ -195,10 +195,9 @@ static void showWarnings( void )
 
 BaseType_t xNetworkBuffersInitialise( void )
 {
-BaseType_t xReturn, x;
+    BaseType_t xReturn, x;
 
-	/* Only initialise the buffers and their associated kernel objects if they
-	have not been initialised before. */
+	/* Only initialise the buffers and their associated kernel objects if they have not been initialised before. */
 	if( xNetworkBufferSemaphore == NULL )
 	{
 		/* In case alternative locking is used, the mutexes can be initialised here */
@@ -249,12 +248,11 @@ BaseType_t xReturn, x;
 
 xNetworkBufferDescriptor_t *pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes, TickType_t xBlockTimeTicks )
 {
-xNetworkBufferDescriptor_t *pxReturn = NULL;
-BaseType_t xInvalid = pdFALSE;
-size_t uxCount;
+    xNetworkBufferDescriptor_t *pxReturn = NULL;
+    BaseType_t xInvalid = pdFALSE;
+    size_t uxCount;
 
-	/* The current implementation only has a single size memory block, so
-	the requested size parameter is not used (yet). */
+	/* The current implementation only has a single size memory block, so the requested size parameter is not used (yet). */
 	( void ) xRequestedSizeBytes;
 	if( xNetworkBufferSemaphore != NULL )
 	{
@@ -279,8 +277,8 @@ size_t uxCount;
 
 			if( xInvalid )
 			{
-				FreeRTOS_debug_printf( ( "pxGetNetworkBufferWithDescriptor: INVALID BUFFER: %p (valid %lu)\r\n",
-					pxReturn, bIsValidNetworkDescriptor( pxReturn ) ) );
+//				FreeRTOS_debug_printf( ( "pxGetNetworkBufferWithDescriptor: INVALID BUFFER: %p (valid %lu)\r\n",
+//					pxReturn, bIsValidNetworkDescriptor( pxReturn ) ) );
 				pxReturn = NULL;
 			}
 			else
@@ -330,7 +328,7 @@ size_t uxCount;
 
 xNetworkBufferDescriptor_t *pxNetworkBufferGetFromISR( size_t xRequestedSizeBytes )
 {
-xNetworkBufferDescriptor_t *pxReturn = NULL;
+    xNetworkBufferDescriptor_t *pxReturn = NULL;
 
 	/* The current implementation only has a single size memory block, so
 	the requested size parameter is not used (yet). */
@@ -368,7 +366,7 @@ xNetworkBufferDescriptor_t *pxReturn = NULL;
 
 BaseType_t vNetworkBufferReleaseFromISR( xNetworkBufferDescriptor_t * const pxNetworkBuffer )
 {
-BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	/* Ensure the buffer is returned to the list of free buffers before the
 	counting semaphore is 'given' to say a buffer is available. */
@@ -387,7 +385,7 @@ BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 void vReleaseNetworkBufferAndDescriptor( xNetworkBufferDescriptor_t * const pxNetworkBuffer )
 {
-BaseType_t xListItemAlreadyInFreeList;
+    BaseType_t xListItemAlreadyInFreeList;
 
 #if( ipconfigIP_TASK_KEEPS_MESSAGE_BUFFER != 0 )
 	if( pxNetworkBuffer == pxIpTaskMessageBuffer )
