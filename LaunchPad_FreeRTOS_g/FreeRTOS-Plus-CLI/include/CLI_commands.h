@@ -48,6 +48,7 @@ static const CLI_Command_Definition_t xReset =
 	0
 };
 
+
 portBASE_TYPE xMemTestCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
 /* Structure that defines the "memtest" command line command. */
 static const CLI_Command_Definition_t xMemTest =
@@ -87,4 +88,44 @@ static const CLI_Command_Definition_t xNetStat =
 	( pdCOMMAND_LINE_CALLBACK ) xNetStatCommand,
 	0 /* No parameters are expected. */
 };
+BaseType_t xSetIpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setip" command line command. */
+static const CLI_Command_Definition_t xSetip =
+{
+    ( const char *) "setip",
+    ( const char *) "\r\nsetip <ipaddress> \r\n for example, setip 192.168.1.3 \r\n",
+    ( pdCOMMAND_LINE_CALLBACK ) xSetIpCommand,
+    -1
+};
+
+BaseType_t xSetMacCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setmac" command line command. */
+static const CLI_Command_Definition_t xSetmac =
+{
+    ( const char *) "setmac",
+    ( const char *) "\r\nsetmac <macaddress> \r\n for example, setmac  00:04:9F:06:30:FE \r\n",
+    ( pdCOMMAND_LINE_CALLBACK )  xSetMacCommand,
+    -1
+};
+
+BaseType_t xClearCntCommand (char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "clearcnt" command line command. */
+static const CLI_Command_Definition_t xClearcnt =
+{
+    ( const char *) "clearcnt",
+    ( const char *) "\r\nclearcnt  \r\n for example, clearcnt   \r\n",
+    ( pdCOMMAND_LINE_CALLBACK ) xClearCntCommand,
+    0
+};
+
+BaseType_t xViewCntCommand (char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "viewcnt" command line command. */
+static const CLI_Command_Definition_t xViewcnt =
+{
+    ( const char *) "viewcnt",
+    ( const char *) "\r\nviewcnt  \r\n for example, viewcnt  \r\n",
+    ( pdCOMMAND_LINE_CALLBACK )  xViewCntCommand,
+    0
+};
+
 #endif /* CLI_COMMANDS_H_ */
