@@ -16,8 +16,8 @@ Create Date:2019-04-30
 #define     EEPROM_ID       0x52
 
 typedef struct  _Rtc_Timer {
-    uint8   ryear;
-    uint8   rmouth;
+    uint16  ryear;
+    uint8   rmonth;
     uint8   rday;
     uint8   rhour;
     uint8   rminute;
@@ -124,6 +124,49 @@ void    RtcInit(void);
 *Return  :
 *******************************************************/
 Rtc_Timer   RtcGetValue(void);
+
+/******************************************************
+*Name    :  RtcSetValue
+*Function:  RTC 设置时间函数
+*Params  :
+*Return  :
+*******************************************************/
+void    RtcSetValue(Rtc_Timer  rtc);
+
+/******************************************************
+*Name    :  TimeGet
+*Function:  Time 读取时间函数
+*Params  :
+*Return  :
+*******************************************************/
+Rtc_Timer   TimeGet(void);
+
+/******************************************************
+*Name    :  UnixTime2Beijing
+*Function:  将Unix时间戳转换为北京时间
+*Params  :  unixTime: 需要判断的Unix时间戳      *tempBeijing : 返回的北京时间
+*Return  :  return：none
+*Note    :  没对输入参数正确性做判断
+*******************************************************/
+void UnixTime2Beijing(uint32_t unixTime, Rtc_Timer *tempBeijing);
+
+/******************************************************
+*Name    :  Beijing2UnixTime
+*Function:  将北京时间转换为Unix时间戳
+*Params  :  *BeijingTime : 当前的北京时间
+*Return  :  return：Unix时间戳（从1970/1/1 00:00:00 到现在的秒数)
+*Note    :  没对输入参数正确性做判断
+*******************************************************/
+uint32_t Beijing2UnixTime(Rtc_Timer *beijingTime);
+
+/******************************************************
+*Name    :  Utc2Rtc
+*Function:  将UTC时间转换成 RTC格式的BCD码
+*Params  :
+*Return  :  return：none
+*Note    :  没对输入参数正确性做判断
+*******************************************************/
+void Utc2Rtc(void);
 
 /******************************************************
 *Name    :  eeprom_write
