@@ -13,7 +13,9 @@ Create Date:2019-05-31
 
 extern  uint8 emacAddress[6U];
 extern  uint8_t ucIPAddress[4];
-
+extern  uint8_t ucGatewayAddress[4];
+extern  uint8_t ucDNSServerAddress[4];
+extern  uint8_t remoteIPAddress[4];
 uint16  NorBuf[NORBUFSIZE];
 
 /******************************************************
@@ -610,6 +612,7 @@ void    SetIpMac(void)
 {
     uint16 NorFlagBuf[PAGESIZE];
     uint16 NorDataBuf[PAGESIZE];
+    uint8  dat[16];
     uint32  mask;
     uint8   i;
     taskENTER_CRITICAL();
@@ -625,6 +628,12 @@ void    SetIpMac(void)
         ucIPAddress[1] = (uint8)(NorDataBuf[IPOFFSET + 1]);
         ucIPAddress[2] = (uint8)(NorDataBuf[IPOFFSET + 2]);
         ucIPAddress[3] = (uint8)(NorDataBuf[IPOFFSET + 3]);
+
+        for(i=0;i<3;i++)
+        {
+            ucGatewayAddress[i] = ucIPAddress[i];
+            ucDNSServerAddress[i] = ucIPAddress[i];
+        }
     }
 
     mask = (uint32)(NorFlagBuf[MACOFFSET + 0] << 24) |
@@ -641,9 +650,26 @@ void    SetIpMac(void)
         emacAddress[4] = (uint8)(NorDataBuf[MACOFFSET + 4]);
         emacAddress[5] = (uint8)(NorDataBuf[MACOFFSET + 5]);
     }
+
+    FUNC_IIC(page_read)(dat,REMOTEIP,16);
+
+    mask = (uint32)(dat[0]  << 24)|
+           (uint32)(dat[1]  << 16)|
+           (uint32)(dat[2]  << 8 )|
+           (uint32)(dat[3]  );
+
+    if(mask == IPREMOTEMASK)
+    {
+
+        remoteIPAddress[0] = dat[8];
+        remoteIPAddress[1] = dat[9];
+        remoteIPAddress[2] = dat[10];
+        remoteIPAddress[3] = dat[11];
+    }
+
     taskEXIT_CRITICAL();
 
-    UartSendString(sciREG4," \r\n MCU IP  : \0");
+    UartSendString(sciREG4," \r\n MCU IP    : \0");
     for(i=0;i<4;i++)
     {
         UartSendByte(sciREG4,ucIPAddress[i]);
@@ -653,12 +679,22 @@ void    SetIpMac(void)
             UartSendString(sciREG4,"\r\n\0");
     }
 
-    UartSendString(sciREG4," MCU MAC : \0");
+    UartSendString(sciREG4," MCU MAC   : \0");
     for(i=0;i<6;i++)
     {
         UartSendMac(sciREG4,emacAddress[i]);
         if(i!=5)
             UartSendString(sciREG4,":\0");
+        else
+            UartSendString(sciREG4,"\r\n\0");
+    }
+
+    UartSendString(sciREG4," REMOTE IP : \0");
+    for(i=0;i<4;i++)
+    {
+        UartSendByte(sciREG4,remoteIPAddress[i]);
+        if(i!=3)
+            UartSendString(sciREG4,".\0");
         else
             UartSendString(sciREG4,"\r\n\r\n\0");
     }
