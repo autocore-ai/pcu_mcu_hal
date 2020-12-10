@@ -8,10 +8,13 @@
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 #include "HL_emac.h"
-#include "MX25L6406E.h"
+#include "hardware.h"
+#include "ma_date_and_time.h"
+#include <time.h>
 
 
 extern hdkif_t hdkif_data[MAX_EMAC_INSTANCE];
+extern volatile time_t xSysTimeSeconds;
 
 
 void xSystemReset(void)
@@ -400,7 +403,7 @@ BaseType_t xSetIpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const cha
         taskEXIT_CRITICAL();
     }
 
-    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "IP set sucess!\r\n" );
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "IP set successfully!\r\n" );
 
 
     return xReturn;
@@ -485,7 +488,7 @@ BaseType_t xSetMacCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const ch
     NorPageWrite(NORDATAPAGE, NorDataBuf);
     taskEXIT_CRITICAL();
 
-    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "MAC set sucess!\r\n" );
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "MAC set successfully!\r\n" );
 
     return pdFALSE;
 }
@@ -510,7 +513,250 @@ BaseType_t xViewCntCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const c
     snprintf( pcWriteBuffer, xWriteBufferLen, "Can1 Tx: %d      Rx: %d  \r\nCan2 Tx: %d      Rx: %d  \r\nCan3 Tx: %d      Rx: %d  \r\nCan4 Tx: %d      Rx: %d  \r\nudp1 Tx: %d      Rx: %d  \r\nudp2 Tx: %d      Rx: %d  \r\nudp3 Tx: %d      Rx: %d  \r\nudp4 Tx: %d      Rx: %d  \r\n", \
               FrameCnt[0],FrameCnt[1],FrameCnt[2],FrameCnt[3],FrameCnt[4],FrameCnt[5],FrameCnt[6],FrameCnt[7],FrameCnt[8],FrameCnt[9],FrameCnt[10],FrameCnt[11],FrameCnt[12],FrameCnt[13],FrameCnt[14],FrameCnt[15]);
 
-return pdFALSE;
+    return pdFALSE;
 }
-//=====================end============================
+
+BaseType_t xSetRemoteIpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+{
+    char * pcParameter;
+    BaseType_t lParameterStringLength, xReturn = pdFALSE;
+    uint32_t ulIPAddress;
+    char cBuffer[ 16 ];
+    uint8 dat[16];
+    ( void ) pcCommandString;
+    configASSERT( pcWriteBuffer );
+
+    /* Start with an empty string. */
+    pcWriteBuffer[ 0 ] = 0x00;
+
+    /* Obtain the number of bytes to ping. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                2,                      /* Return the second parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Obtain the IP address string. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                1,                      /* Return the first parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Sanity check something was returned. */
+    configASSERT( pcParameter );
+
+    /* Attempt to obtain the IP address.   If the first character is not a
+    digit, assume the host name has been passed in. */
+    if( ( *pcParameter >= '0' ) && ( *pcParameter <= '9' ) )
+    {
+        ulIPAddress = FreeRTOS_inet_addr( pcParameter );
+    }
+    else
+    {
+        return xReturn;
+    }
+
+    /* Convert IP address, which may have come from a DNS lookup, to string. */
+    FreeRTOS_inet_ntoa( ulIPAddress, cBuffer );
+
+    if( ulIPAddress != 0 )
+    {
+        taskENTER_CRITICAL();
+
+        dat[0] = (uint8)((IPREMOTEMASK >> 24) & 0xFF);
+        dat[1] = (uint8)((IPREMOTEMASK >> 16) & 0xFF);
+        dat[2] = (uint8)((IPREMOTEMASK >> 8 ) & 0xFF);
+        dat[3] = (uint8)( IPREMOTEMASK        & 0xFF);
+
+        dat[8] = (uint8)((ulIPAddress >> 24)  & 0xFF);
+        dat[9] = (uint8)((ulIPAddress >> 16)  & 0xFF);
+        dat[10]= (uint8)((ulIPAddress >>  8)  & 0xFF);
+        dat[11]= (uint8)( ulIPAddress         & 0xFF);
+
+        FUNC_IIC(page_write)(dat,REMOTEIP,16);
+
+        taskEXIT_CRITICAL();
+    }
+
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "Remote IP set successfully!\r\n" );
+
+
+    return xReturn;
+
+}
+
+
+uint8  a2hex(const char c)
+{
+    switch(c)
+    {
+        case '0'...'9':
+            return (unsigned char)atoi(&c);
+        default:
+            return 0;
+    }
+}
+void    COPY_STR2DATE(char *dat, char *str)
+{
+    uint8   i;
+    do{
+        for(i=0;i<3;i++)
+        {
+            dat[i] = (a2hex(str[i*3]) << 4) + a2hex(str[i*3 + 1]);
+        }
+    }while(0);
+}
+
+BaseType_t xSetDateCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+{
+    char * pcParameter;
+    BaseType_t lParameterStringLength, xReturn = pdFALSE;
+    char cBuffer[ 16 ];
+    ( void ) pcCommandString;
+    Rtc_Timer  rtc;
+
+    configASSERT( pcWriteBuffer );
+
+    /* Start with an empty string. */
+    pcWriteBuffer[ 0 ] = 0x00;
+
+    /* Obtain the number of bytes to ping. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                2,                      /* Return the second parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Obtain the IP address string. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                1,                      /* Return the first parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Sanity check something was returned. */
+    configASSERT( pcParameter );
+
+
+
+    /* Attempt to obtain the IP address.   If the first character is not a
+    digit, assume the host name has been passed in. */
+    if( ( *pcParameter >= '0' ) && ( *pcParameter <= '9' ) )
+    {
+        COPY_STR2DATE(cBuffer,pcParameter);
+    }
+    else
+    {
+        return xReturn;
+    }
+
+    if ( (cBuffer[0] > 0x00 && cBuffer[0] < 0x99 ) && (cBuffer[1] > 0x00 && cBuffer[1] < 0x13) && (cBuffer[2]>0 && cBuffer[2] < 0x32))
+    {
+        rtc = RtcGetValue();
+        rtc.ryear   = cBuffer[0];
+        rtc.rmonth  = cBuffer[1];
+        rtc.rday    = cBuffer[2];
+        RtcSetValue(rtc);
+        rtc = TimeGet();
+        xSysTimeSeconds = Beijing2UnixTime(&rtc);
+        snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "Date set successfully!\r\n" );
+    }
+    else
+        snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "Date set fail !\r\n" );
+
+    return xReturn;
+
+}
+
+BaseType_t xSetTimeCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+{
+    char * pcParameter;
+    BaseType_t lParameterStringLength, xReturn = pdFALSE;
+    char cBuffer[ 16 ];
+    ( void ) pcCommandString;
+    Rtc_Timer  rtc;
+
+    configASSERT( pcWriteBuffer );
+
+    /* Start with an empty string. */
+    pcWriteBuffer[ 0 ] = 0x00;
+
+    /* Obtain the number of bytes to ping. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                2,                      /* Return the second parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Obtain the IP address string. */
+    pcParameter = ( char * ) FreeRTOS_CLIGetParameter
+                            (
+                                pcCommandString,        /* The command string itself. */
+                                1,                      /* Return the first parameter. */
+                                &lParameterStringLength /* Store the parameter string length. */
+                            );
+
+    /* Sanity check something was returned. */
+    configASSERT( pcParameter );
+
+
+
+    /* Attempt to obtain the IP address.   If the first character is not a
+    digit, assume the host name has been passed in. */
+    if( ( *pcParameter >= '0' ) && ( *pcParameter <= '9' ) )
+    {
+        COPY_STR2DATE(cBuffer,pcParameter);
+    }
+    else
+    {
+        return xReturn;
+    }
+
+    if ( cBuffer[0] < 0x24  &&  cBuffer[1] < 0x60 &&  cBuffer[2] < 0x60 )
+    {
+        rtc = RtcGetValue();
+        rtc.rhour   = cBuffer[0];
+        rtc.rminute = cBuffer[1];
+        rtc.rsecond = cBuffer[2];
+        RtcSetValue(rtc);
+        rtc = TimeGet();
+        xSysTimeSeconds = Beijing2UnixTime(&rtc);
+        snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "Time set successfully!\r\n" );
+    }
+    else
+        snprintf( pcWriteBuffer, xWriteBufferLen, "%s", "Time set fail !\r\n" );
+
+    return xReturn;
+
+}
+
+BaseType_t xShowTimeCommand (char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+{
+    uint8_t type;
+    time_t uxCurrentMS,uxCurrentSeconds;
+    type = FreeRTOS_get_time_type();
+    char tim[10];
+    sprintf(tim,"type is %d!\n",type);
+
+    FF_TimeStruct_t xTimeStruct;
+    FreeRTOS_gettime(&uxCurrentSeconds, &uxCurrentMS );
+    FreeRTOS_gmtime_r( &uxCurrentSeconds, &xTimeStruct );
+    char time[250];
+    sprintf(time,"Time: %04d-%02d-%02d %2d:%02d:%02d.%03u\r\n",
+            xTimeStruct.tm_year + 1900,
+            xTimeStruct.tm_mon + 1,
+            xTimeStruct.tm_mday,
+            xTimeStruct.tm_hour,
+            xTimeStruct.tm_min,
+            xTimeStruct.tm_sec,
+            ( unsigned )uxCurrentMS);
+    snprintf( pcWriteBuffer, xWriteBufferLen, "%s", time );
+    return pdFALSE;
+}
 //=====================end============================
