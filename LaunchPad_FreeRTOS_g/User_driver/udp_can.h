@@ -16,6 +16,10 @@
 #define FUNC_S(x)             #x
 
 #define REMOTE_IP_ADDR          "192.168.1.239"
+#define remoteIP_ADDR0          192
+#define remoteIP_ADDR1          168
+#define remoteIP_ADDR2          1
+#define remoteIP_ADDR3          239
 #define CANNELLONI_PORT1         20000
 #define CANNELLONI_REMOTE_PORT1  20000
 #define CANNELLONI_PORT2         CANNELLONI_PORT1 + 1

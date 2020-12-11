@@ -32,7 +32,7 @@ static void vPTPTask( void *pvParameters )
 
 void vStartPTPTask()
 {
-    vConfigureTimerForSysTime();
+//    vConfigureTimerForSysTime();
     xTaskCreate( vPTPTask,
                  ( const char * ) "PTP_Task",
                  PTP_TASK_SIZE,

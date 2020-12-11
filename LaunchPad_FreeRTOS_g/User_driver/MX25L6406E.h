@@ -15,18 +15,19 @@ Create Date:2019-05-31
 #define     BLOCKSIZE_32K   0x8000
 #define     BLOCKSIZE_64K   0x10000
 
-#define     CHIPSIZE    0x100000
-#define     NORBUFSIZE  256
+#define     CHIPSIZE        0x100000
+#define     NORBUFSIZE      256
 
-#define     DATASECTOR  0
-#define     NORFLAGPAGE 0
-#define     NORDATAPAGE 1
-#define     IPOFFSET    0
-#define     MACOFFSET   10
-#define     IPMASK      0x58535901
-#define     MACMASK     0x58535902
-
-#define     SST25VF080B 0xBF258E
+#define     DATASECTOR      0
+#define     NORFLAGPAGE     0
+#define     NORDATAPAGE     1
+#define     IPOFFSET        0
+#define     MACOFFSET       10
+#define     IPMASK          0x58535901
+#define     MACMASK         0x58535902
+#define     IPREMOTEMASK    0x58535903
+#define     REMOTEIP        0x1
+#define     SST25VF080B     0xBF258E
 #define     SST25VF080B_ID  0xBF8E
 
 typedef enum {

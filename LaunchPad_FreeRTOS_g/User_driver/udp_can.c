@@ -48,6 +48,7 @@ static void FUNC_R(udp4,send)( void *pvParameters );
 static void FUNC_R(udp4,recv)( void *pvParameters );
 
 uint32  FrameCnt[16] = {0};
+uint8_t remoteIPAddress[4] = {remoteIP_ADDR0, remoteIP_ADDR1, remoteIP_ADDR2, remoteIP_ADDR3};
 
 uint16  SendCanMsgToUdp(uint8 *p, QueueHandle_t canR_udpS_que, uint32 sequence );
 void    SendUdpPackToCan(int dataLen, uint8 *p, QueueHandle_t UdpToCan_queue,TaskHandle_t  TaskHandle);
@@ -180,7 +181,8 @@ static void FUNC_R(udp1,send)( void *pvParameters )
     uint32_t    counter = 0;
 #endif
 
-    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+//    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+    xDestinationAddress.sin_addr = FreeRTOS_inet_addr_quick( remoteIPAddress[ 0 ], remoteIPAddress[ 1 ], remoteIPAddress[ 2 ], remoteIPAddress[ 3 ] );
     xDestinationAddress.sin_port = FreeRTOS_htons( CANNELLONI_REMOTE_PORT1 );
 
     xSocket = FreeRTOS_socket( FREERTOS_AF_INET,
@@ -275,7 +277,8 @@ static void FUNC_R(udp2,send)( void *pvParameters )
     uint32_t    counter = 0;
 #endif
 
-    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+//    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+    xDestinationAddress.sin_addr = FreeRTOS_inet_addr_quick( remoteIPAddress[ 0 ], remoteIPAddress[ 1 ], remoteIPAddress[ 2 ], remoteIPAddress[ 3 ] );
     xDestinationAddress.sin_port = FreeRTOS_htons( CANNELLONI_REMOTE_PORT2 );
 
     xSocket = FreeRTOS_socket( FREERTOS_AF_INET,
@@ -373,7 +376,8 @@ static void FUNC_R(udp3,send)( void *pvParameters )
     uint32_t    counter = 0;
 #endif
 
-    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+//    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+    xDestinationAddress.sin_addr = FreeRTOS_inet_addr_quick( remoteIPAddress[ 0 ], remoteIPAddress[ 1 ], remoteIPAddress[ 2 ], remoteIPAddress[ 3 ] );
     xDestinationAddress.sin_port = FreeRTOS_htons( CANNELLONI_REMOTE_PORT3 );
 
     xSocket = FreeRTOS_socket( FREERTOS_AF_INET,
@@ -470,7 +474,8 @@ static void FUNC_R(udp4,send)( void *pvParameters )
     uint32_t    counter = 0;
 #endif
 
-    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+//    xDestinationAddress.sin_addr = FreeRTOS_inet_addr( REMOTE_IP_ADDR );
+    xDestinationAddress.sin_addr = FreeRTOS_inet_addr_quick( remoteIPAddress[ 0 ], remoteIPAddress[ 1 ], remoteIPAddress[ 2 ], remoteIPAddress[ 3 ] );
     xDestinationAddress.sin_port = FreeRTOS_htons( CANNELLONI_REMOTE_PORT4 );
 
     xSocket = FreeRTOS_socket( FREERTOS_AF_INET,

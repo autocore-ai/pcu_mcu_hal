@@ -113,7 +113,7 @@ BaseType_t xClearCntCommand (char *pcWriteBuffer, size_t xWriteBufferLen, const 
 static const CLI_Command_Definition_t xClearcnt =
 {
     ( const char *) "clearcnt",
-    ( const char *) "\r\nclearcnt  \r\n for example, clearcnt   \r\n",
+    ( const char *) "\r\nclearcnt:  \r\n for example, clearcnt   \r\n",
     ( pdCOMMAND_LINE_CALLBACK ) xClearCntCommand,
     0
 };
@@ -123,8 +123,48 @@ BaseType_t xViewCntCommand (char *pcWriteBuffer, size_t xWriteBufferLen, const c
 static const CLI_Command_Definition_t xViewcnt =
 {
     ( const char *) "viewcnt",
-    ( const char *) "\r\nviewcnt  \r\n for example, viewcnt  \r\n",
+    ( const char *) "\r\nviewcnt:  \r\n for example, viewcnt  \r\n",
     ( pdCOMMAND_LINE_CALLBACK )  xViewCntCommand,
+    0
+};
+
+BaseType_t xSetRemoteIpCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setremoteip" command line command. */
+static const CLI_Command_Definition_t xSetremoteip =
+{
+    ( const char *) "setremoteip",
+    ( const char *) "\r\nsetremoteip <ipaddress> \r\n for example, setremoteip 192.168.1.239 \r\n",
+    ( pdCOMMAND_LINE_CALLBACK ) xSetRemoteIpCommand,
+    -1
+};
+
+BaseType_t xSetDateCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setremoteip" command line command. */
+static const CLI_Command_Definition_t xSetdate =
+{
+    ( const char *) "setdate",
+    ( const char *) "\r\nsetdate <yy/mm/dd > \r\n for example, setdate yy/mm/dd \r\n",
+    ( pdCOMMAND_LINE_CALLBACK ) xSetDateCommand,
+    -1
+};
+
+BaseType_t xSetTimeCommand( char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "setremoteip" command line command. */
+static const CLI_Command_Definition_t xSettime =
+{
+    ( const char *) "settime",
+    ( const char *) "\r\nsettime <hh:mm:ss> \r\n for example, settime hh:mm:ss \r\n",
+    ( pdCOMMAND_LINE_CALLBACK ) xSetTimeCommand,
+    -1
+};
+
+BaseType_t xShowTimeCommand (char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+/* Structure that defines the "viewcnt" command line command. */
+static const CLI_Command_Definition_t xShowtime =
+{
+    ( const char *) "showtime",
+    ( const char *) "\r\nshowtime:  \r\n for example, showtime  \r\n",
+    ( pdCOMMAND_LINE_CALLBACK )  xShowTimeCommand,
     0
 };
 

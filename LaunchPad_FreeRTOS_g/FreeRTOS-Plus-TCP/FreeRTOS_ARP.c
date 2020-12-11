@@ -655,7 +655,7 @@ void FreeRTOS_ClearARP( void )
 /*-----------------------------------------------------------*/
 
 #if( ipconfigHAS_PRINTF != 0 ) || ( ipconfigHAS_DEBUG_PRINTF != 0 )
-
+#if 0
 	void FreeRTOS_PrintARPCache( void )
 	{
 	BaseType_t x, xCount = 0;
@@ -681,6 +681,37 @@ void FreeRTOS_ClearARP( void )
 		}
 
 		FreeRTOS_printf( ( "Arp has %ld entries\n", xCount ) );
+	}
+#endif
+
+#include "Sci_driver.h"
+	void FreeRTOS_PrintARPCache( void )
+	{
+	BaseType_t x, xCount = 0;
+	char time[250];
+	    /* Loop through each entry in the ARP cache. */
+	    for( x = 0; x < ipconfigARP_CACHE_ENTRIES; x++ )
+	    {
+	        if( ( xARPCache[ x ].ulIPAddress != 0ul ) && ( xARPCache[ x ].ucAge > 0U ) )
+	        {
+	            /* See if the MAC-address also matches, and we're all happy */
+	            sprintf( time, "Arp %2ld: %3u - %16lxip : %02x:%02x:%02x : %02x:%02x:%02x\r\n",
+	                x,
+	                xARPCache[ x ].ucAge,
+	                xARPCache[ x ].ulIPAddress,
+	                xARPCache[ x ].xMACAddress.ucBytes[0],
+	                xARPCache[ x ].xMACAddress.ucBytes[1],
+	                xARPCache[ x ].xMACAddress.ucBytes[2],
+	                xARPCache[ x ].xMACAddress.ucBytes[3],
+	                xARPCache[ x ].xMACAddress.ucBytes[4],
+	                xARPCache[ x ].xMACAddress.ucBytes[5]  );
+	            UartSendString(sciREG3,time);
+	            xCount++;
+	        }
+	    }
+
+	    sprintf( time, "Arp has %ld entries\r\n", xCount  );
+	    UartSendString(sciREG3,time);
 	}
 
 #endif /* ( ipconfigHAS_PRINTF != 0 ) || ( ipconfigHAS_DEBUG_PRINTF != 0 ) */

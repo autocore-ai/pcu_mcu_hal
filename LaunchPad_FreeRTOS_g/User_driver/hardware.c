@@ -8,6 +8,8 @@
 
 void    HardwareInit(void)
 {
+    UartSendString(sciREG4,"\r\n MCU is starting , please wait ...... \r\n\0");
+
     LedInit();
 
     FreeRTOS_UartInit();
@@ -19,10 +21,6 @@ void    HardwareInit(void)
     FreeRTOS_Phyinit();
     FreeRTOS_AdcInit();
     FreeRTOS_LinInit();
-
-//    FreeRTOS_udp_can_Init();
-
-//    FreeRTOS_WatchdogInit();
 
 }
 

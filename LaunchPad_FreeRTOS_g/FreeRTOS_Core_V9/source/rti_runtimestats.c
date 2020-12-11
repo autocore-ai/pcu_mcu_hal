@@ -41,22 +41,23 @@ void vConfigureTimerForRunTimeStats(void)
 	If CPUC1 != 0, then fFRC1 = RTICLK/(RTICPUC1+1) */
 	RTI_CPUC1_REG = (configCPU_CLOCK_HZ / configRunTimeStats_RATE_HZ) - 1;
 
-	/* Overflow Interrupt vektor 醫ir醤y韙醩a a saj醫 ISR f黦gv閚yekre */
+	/* Overflow Interrupt  */
 	vimChannelMap(RTI_OVERFLOW_1, RTI_OVERFLOW_1, &vFreeRTOSRTIOverFlow1Interrupt);
 
-	/* Timer 1. enged閘yez閟e*/
+	/* Timer 1.*/
 	RTI_GCTRL_REG |= 0x00000002U;
+
 }
 
 #pragma INTERRUPT(vFreeRTOSRTIOverFlow1Interrupt, IRQ)
 void vFreeRTOSRTIOverFlow1Interrupt(void)
 {
-	/* RTI OverFLow 1 megszak韙醩 tilt醩a */
+	/* RTI OverFLow 1*/
 	RTI_CLEARINTENA_REG = 0x00040000;
-	/* RTI OverFLow 1 megszak韙醩 t鰎l閟e */
+	/* RTI OverFLow 1  */
 	RTI_INTFLAG_REG = 0x00040000;
 	xHighPrecisionTimerUsecMSB++;
-	/* RTI OverFlow 1 megszak韙醩 enged閘yez閟e */
+	/* RTI OverFlow 1 */
 	RTI_SETINTENA_REG |= 0x00040000;
 }
 
@@ -102,14 +103,17 @@ void vConfigureTimerForSysTime(void)
 		without software intervention. */
 		RTI_UDCP1_REG = (( configCPU_CLOCK_HZ / 2 ) / 1000) - 75;
 
-		/* Interrupt vektorok 醫ir醤y韙醩a a saj醫 ISR f黦gv閚yekre */
+		/* Interrupt vektorok  */
 		vimChannelMap(RTI_COMPARE_1, RTI_COMPARE_1, &vFreeRTOSRTICmp1Interrupt);
 
-		/* RTI Compare 1 megszak韙醩 enged閘yez閟e */
+		/* RTI Compare 1  */
 		RTI_SETINTENA_REG |= 0x00000002;
 
-		/* RTI OverFlow 1 megszak韙醩 enged閘yez閟e */
+		/* RTI OverFlow 1  */
 		RTI_SETINTENA_REG |= 0x00040000;
+
+		vimEnableInterrupt(RTI_COMPARE_1,SYS_IRQ);
+
         xTimeInit = pdTRUE;
     }
 }

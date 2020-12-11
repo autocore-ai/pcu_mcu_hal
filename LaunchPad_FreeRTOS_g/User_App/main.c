@@ -58,7 +58,7 @@
 #include "ff_stdio.h"
 #include "ff_ramdisk.h"
 
-#include "Udp_can.h"
+#include "udp_can.h"
 #include "Sci_driver.h"
 #include "hardware.h"
 
@@ -109,6 +109,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName);
 TimerHandle_t   AutoReloadTimer_Handle;
 void AutoReloadCallback(TimerHandle_t xTimer);
 
+
 /** ***************************************************************************************************
  * @fn      void main(void)
  * @brief   main function. MUX
@@ -128,8 +129,6 @@ void main(void)
 
     _enable_IRQ();
 
-//    AT24C04_Test();
-
     /* Register some commands to CLI */
 
 #if ( configGENERATE_RUN_TIME_STATS == 1 )
@@ -146,9 +145,12 @@ void main(void)
     FreeRTOS_CLIRegisterCommand( &xSetmac );
     FreeRTOS_CLIRegisterCommand( &xViewcnt );
     FreeRTOS_CLIRegisterCommand( &xClearcnt );
-
+    FreeRTOS_CLIRegisterCommand( &xSetremoteip );
+    FreeRTOS_CLIRegisterCommand( &xSetdate );
+    FreeRTOS_CLIRegisterCommand( &xSettime );
+    FreeRTOS_CLIRegisterCommand( &xShowtime );
     /* Register some more filesystem related commands, like dir, cd, pwd ... */
-    vRegisterFileSystemCLICommands();
+//    vRegisterFileSystemCLICommands();
 
     xTaskCreate(vTask1, "HeartBeat", configMINIMAL_STACK_SIZE * 10, NULL, tskIDLE_PRIORITY + 3  | portPRIVILEGE_BIT, &xTask1Handle);
     FreeRTOS_IPInit(ucIPAddress, ucNetMask, ucGatewayAddress, ucDNSServerAddress, emacAddress);
@@ -179,11 +181,7 @@ void main(void)
  */
 void vTask1(void *pvParameters)
 {
-//    FF_Disk_t *pxDisk;
     uint8   flag = 0;
-//    Rtc_Timer  rt;
-
-
     while(1)
     {
         if(flag)
@@ -201,23 +199,14 @@ void vTask1(void *pvParameters)
             flag = 1;
         }
 
-//        rt = RtcGetValue();
 
-/*
-        UartSendString(sciREG1," Rtc Timer = \0");
-        UartSendRtc(sciREG1,rt.rhour);
-        UartSendString(sciREG1," : \0");
-        UartSendRtc(sciREG1,rt.rminute);
-        UartSendString(sciREG1," : \0");
-        UartSendRtc(sciREG1,rt.rsecond);
-        UartSendString(sciREG1,"\r\n\0");
-*/
         vTaskDelay(pdMS_TO_TICKS(200));
 
     }
 }
 
 uint8   TimerFlag = 0;
+uint8   RtcCounter = 0;
 void AutoReloadCallback(TimerHandle_t xTimer)
 {
     if(TimerFlag)
@@ -225,7 +214,15 @@ void AutoReloadCallback(TimerHandle_t xTimer)
     else
         LedLeftTop_off();
     TimerFlag = ~TimerFlag;
-    FreeRTOS_showtime();
+    RtcCounter++;
+    if(RtcCounter > 20)
+    {
+        Utc2Rtc();
+        RtcCounter = 0;
+    }
+    else
+//        FreeRTOS_PrintARPCache();
+        FreeRTOS_showtime();
 }
 
 
@@ -364,6 +361,7 @@ const char *pcApplicationHostnameHook(void)
  */
 void vApplicationTickHook(void)
 {
+
 }
 
 /** ***************************************************************************************************
