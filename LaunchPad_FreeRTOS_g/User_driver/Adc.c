@@ -13,7 +13,7 @@ Create Date:2019-10-14
 
 #include    "HL_adc.h"
 #include    "HL_sys_vim.h"
-#include    "Hardware.h"
+#include    "hardware.h"
 
 #define     ADC1_GROUP1         15
 

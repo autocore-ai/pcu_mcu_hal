@@ -83,7 +83,7 @@
 #include "ff_headers.h"
 
 #include "NTPDemo.h"
-#include "ntpClient.h"
+#include "NTPClient.h"
 
 #include "ma_date_and_time.h"
 
