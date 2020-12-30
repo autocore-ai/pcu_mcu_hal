@@ -287,7 +287,7 @@ typedef struct
 
     char *locator;
 
-    volatile z_zint_t lease;
+    z_zint_t lease;
     z_zint_t sn_resolution;
     z_zint_t sn_resolution_half;
 
