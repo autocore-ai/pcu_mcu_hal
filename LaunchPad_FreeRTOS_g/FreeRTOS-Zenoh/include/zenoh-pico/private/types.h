@@ -47,6 +47,17 @@ typedef struct
     size_t len;
 } _z_i_map_t;
 
+typedef struct 
+{
+    size_t key;
+    char value[24];
+} _z_glist;
+typedef struct
+{
+    _z_glist vals[64];
+    size_t capacity;    
+} _z_i_gmap_t;
+
 typedef struct
 {
     void *elem;

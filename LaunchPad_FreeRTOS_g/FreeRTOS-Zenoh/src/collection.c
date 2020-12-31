@@ -15,6 +15,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/private/collection.h"
 #include "zenoh-pico/private/system.h"
 #include "zenoh-pico/types.h"
@@ -25,7 +27,7 @@ inline _z_vec_t _z_vec_make(size_t capacity)
     _z_vec_t v;
     v._capacity = capacity;
     v._len = 0;
-    v._val = (void **)malloc(sizeof(void *) * capacity);
+    v._val = (void **)pvPortMalloc(sizeof(void *) * capacity);
     return v;
 }
 
@@ -39,7 +41,7 @@ _z_vec_t _z_vec_clone(const _z_vec_t *v)
 
 void _z_vec_free_inner(_z_vec_t *v)
 {
-    free(v->_val);
+    vPortFree(v->_val);
     v->_len = 0;
     v->_capacity = 0;
     v->_val = NULL;
@@ -48,7 +50,7 @@ void _z_vec_free_inner(_z_vec_t *v)
 void _z_vec_free(_z_vec_t *v)
 {
     for (size_t i = 0; i < v->_len; ++i)
-        free(v->_val[i]);
+        vPortFree(v->_val[i]);
     _z_vec_free_inner(v);
 }
 
@@ -63,10 +65,10 @@ void _z_vec_append(_z_vec_t *v, void *e)
     {
         // Allocate a new vector
         size_t _capacity = 2 * v->_capacity;
-        void **_val = (void **)malloc(_capacity * sizeof(void *));
+        void **_val = (void **)pvPortMalloc(_capacity * sizeof(void *));
         memcpy(_val, v->_val, v->_capacity * sizeof(void *));
         // Free the old vector
-        free(v->_val);
+        vPortFree(v->_val);
         // Update the current vector
         v->_val = _val;
         v->_capacity = _capacity;
@@ -93,7 +95,7 @@ _z_list_t *_z_list_empty = NULL;
 
 _z_list_t *_z_list_of(void *x)
 {
-    _z_list_t *xs = (_z_list_t *)malloc(sizeof(_z_list_t));
+    _z_list_t *xs = (_z_list_t *)pvPortMalloc(sizeof(_z_list_t));
     memset(xs, 0, sizeof(_z_list_t));
     xs->val = x;
     return xs;
@@ -131,7 +133,7 @@ _z_list_t *_z_list_pop(_z_list_t *xs)
 {
     _z_list_t *head = xs;
     xs = head->tail;
-    free(head);
+    vPortFree(head);
     return xs;
 }
 
@@ -143,7 +145,7 @@ _z_list_t *_z_list_drop_val(_z_list_t *xs, size_t position)
     if (position == 0)
     {
         xs = head->tail;
-        free(head);
+        vPortFree(head);
         return xs;
     }
 
@@ -156,7 +158,7 @@ _z_list_t *_z_list_drop_val(_z_list_t *xs, size_t position)
     }
 
     previous->tail = xs->tail;
-    free(xs);
+    vPortFree(xs);
     return head;
 }
 
@@ -175,20 +177,20 @@ _z_list_t *_z_list_remove(_z_list_t *xs, _z_list_predicate predicate, void *arg)
             if (xs == current)
             {
                 xs = xs->tail;
-                free(current);
+                vPortFree(current);
                 return xs;
             }
             // tail removal
             else if (current->val == _z_list_empty)
             {
                 prev->tail = _z_list_empty;
-                free(current);
+                vPortFree(current);
             }
             // middle removal
             else
             {
                 prev->tail = current->tail;
-                free(current);
+                vPortFree(current);
             }
             break;
         }
@@ -219,7 +221,7 @@ void _z_list_free_deep(_z_list_t *xs)
     while (xs)
     {
         void *x = _z_list_head(xs);
-        free(x);
+        vPortFree(x);
         xs = _z_list_pop(xs);
     }
 }
@@ -229,10 +231,10 @@ _z_i_map_t *_z_i_map_empty = NULL;
 
 _z_i_map_t *_z_i_map_make(size_t capacity)
 {
-    _z_i_map_t *map = (_z_i_map_t *)malloc(sizeof(_z_i_map_t));
+    _z_i_map_t *map = (_z_i_map_t *)pvPortMalloc(sizeof(_z_i_map_t));
     map->capacity = capacity;
     map->len = 0;
-    map->vals = (_z_list_t **)malloc(capacity * sizeof(_z_list_t *));
+    map->vals = (_z_list_t **)pvPortMalloc(capacity * sizeof(_z_list_t *));
     for (size_t i = 0; i < map->capacity; i++)
         map->vals[i] = _z_list_empty;
 
@@ -260,7 +262,7 @@ void _z_i_map_set(_z_i_map_t *map, size_t k, void *v)
 
     if (xs == _z_list_empty)
     {
-        entry = (_z_i_map_entry_t *)malloc(sizeof(_z_i_map_entry_t));
+        entry = (_z_i_map_entry_t *)pvPortMalloc(sizeof(_z_i_map_entry_t));
         entry->key = k;
         entry->value = v;
         map->vals[idx] = _z_list_cons(_z_list_empty, entry);
@@ -284,7 +286,7 @@ void _z_i_map_set(_z_i_map_t *map, size_t k, void *v)
 
         if (xs == _z_list_empty)
         {
-            entry = (_z_i_map_entry_t *)malloc(sizeof(_z_i_map_entry_t));
+            entry = (_z_i_map_entry_t *)pvPortMalloc(sizeof(_z_i_map_entry_t));
             entry->key = k;
             entry->value = v;
             map->vals[idx] = _z_list_cons(map->vals[idx], entry);
@@ -338,20 +340,20 @@ void _z_i_map_free(_z_i_map_t *map)
             while (map->vals[i])
             {
                 _z_i_map_entry_t *e = (_z_i_map_entry_t *)_z_list_head(map->vals[i]);
-                free(e->value);
-                free(e);
+                vPortFree(e->value);
+                vPortFree(e);
                 map->vals[i] = _z_list_pop(map->vals[i]);
             }
         }
-        free(map->vals);
-        free(map);
+        vPortFree(map->vals);
+        vPortFree(map);
     }
 }
 
 /*-------- bytes --------*/
 void _z_bytes_init(z_bytes_t *bs, size_t capacity)
 {
-    bs->val = (uint8_t *)malloc(capacity * sizeof(uint8_t));
+    bs->val = (uint8_t *)pvPortMalloc(capacity * sizeof(uint8_t));
     bs->len = capacity;
 }
 
@@ -364,7 +366,7 @@ z_bytes_t _z_bytes_make(size_t capacity)
 
 void _z_bytes_free(z_bytes_t *bs)
 {
-    free((uint8_t *)bs->val);
+    vPortFree((uint8_t *)bs->val);
 }
 
 void _z_bytes_copy(z_bytes_t *dst, const z_bytes_t *src)
@@ -393,7 +395,10 @@ void _z_bytes_reset(z_bytes_t *bs)
 void _z_string_copy(z_string_t *dst, const z_string_t *src)
 {
     if (src->val)
-        dst->val = strdup(src->val);
+    {
+       dst->val = (char*)pvPortMalloc(src->len);
+       strncpy(dst->val,src->val,src->len);       
+    }
     else
         dst->val = NULL;
     dst->len = src->len;
@@ -410,7 +415,7 @@ void _z_string_move(z_string_t *dst, z_string_t *src)
 
 void _z_string_free(z_string_t *str)
 {
-    free((z_str_t)str->val);
+    vPortFree((z_str_t)str->val);
 }
 
 void _z_string_reset(z_string_t *str)
@@ -423,7 +428,7 @@ z_string_t _z_string_from_bytes(z_bytes_t *bs)
 {
     z_string_t s;
     s.len = 2 * bs->len;
-    char *s_val = (char *)malloc(s.len * sizeof(char) + 1);
+    char *s_val = (char *)pvPortMalloc(s.len * sizeof(char) + 1);
 
     char c[] = "0123456789ABCDEF";
     for (size_t i = 0; i < bs->len; i++)
@@ -441,7 +446,7 @@ z_string_t _z_string_from_bytes(z_bytes_t *bs)
 void _z_str_array_init(z_str_array_t *sa, size_t len)
 {
     z_str_t **val = (z_str_t **)&sa->val;
-    *val = (z_str_t *)malloc(len * sizeof(z_str_t));
+    *val = (z_str_t *)pvPortMalloc(len * sizeof(z_str_t));
     sa->len = len;
 }
 
@@ -455,15 +460,18 @@ z_str_array_t _z_str_array_make(size_t len)
 void _z_str_array_free(z_str_array_t *sa)
 {
     for (size_t i = 0; i < sa->len; i++)
-        free((z_str_t)sa->val[i]);
-    free((z_str_t *)sa->val);
+        vPortFree((z_str_t)sa->val[i]);
+    vPortFree((z_str_t *)sa->val);
 }
 
 void _z_str_array_copy(z_str_array_t *dst, const z_str_array_t *src)
 {
     _z_str_array_init(dst, src->len);
     for (size_t i = 0; i < src->len; i++)
-        ((z_str_t *)dst->val)[i] = strdup(src->val[i]);
+    {
+        ((z_str_t *)dst->val)[i]  = pvPortMalloc(strlen(src->val[i])+1);
+        snprintf(dst->val[i] ,strlen(src->val[i])+1,src->val[i]);
+    }
     dst->len = src->len;
 }
 
@@ -479,7 +487,7 @@ void _z_str_array_move(z_str_array_t *dst, z_str_array_t *src)
 /*-------- Mvar --------*/
 _z_mvar_t *_z_mvar_empty()
 {
-    _z_mvar_t *mv = (_z_mvar_t *)malloc(sizeof(_z_mvar_t));
+    _z_mvar_t *mv = (_z_mvar_t *)pvPortMalloc(sizeof(_z_mvar_t));
     memset(mv, 0, sizeof(_z_mvar_t));
     _z_mutex_init(&mv->mtx);
     _z_condvar_init(&mv->can_put);
@@ -548,3 +556,25 @@ void _z_mvar_put(_z_mvar_t *mv, void *e)
         }
     } while (1);
 }
+void _z_i_gmap_set(_z_i_gmap_t *map, size_t k, char *v)
+{
+
+    // Compute the hash
+    size_t idx = k % map->capacity;
+    // Get the list associated to the hash
+    map->vals[idx].key = k;
+    strcpy(map->vals[idx].value,v);
+}
+
+char * _z_i_gmap_get(_z_i_gmap_t *map, size_t k)
+{
+    size_t idx = k % map->capacity;
+
+    if(map->vals[idx].key == k)
+    {
+        return map->vals[idx].value;
+    }
+    else
+        return NULL;
+}
+    

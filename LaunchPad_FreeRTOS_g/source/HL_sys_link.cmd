@@ -86,7 +86,7 @@ SECTIONS
     .kernelHEAP   : {} > RAM
     .bss          : {} > SDRAM
     .data         : {} > SDRAM
-
+    .sysmem       : {} > SDRAM
 /* USER CODE BEGIN (4) */
 //	.TI.noinit    : {} > SDRAM
 //	.TI.persistent: {} > SDRAM

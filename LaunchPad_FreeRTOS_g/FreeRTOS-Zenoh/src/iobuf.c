@@ -15,6 +15,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/private/iobuf.h"
 
 /*------------------ IOSli ------------------*/
@@ -32,7 +34,7 @@ _z_iosli_t _z_iosli_wrap(uint8_t *buf, size_t capacity, size_t r_pos, size_t w_p
 
 _z_iosli_t _z_iosli_make(size_t capacity)
 {
-    _z_iosli_t ios = _z_iosli_wrap((uint8_t *)malloc(capacity), capacity, 0, 0);
+    _z_iosli_t ios = _z_iosli_wrap((uint8_t *)pvPortMalloc(capacity), capacity, 0, 0);
     ios.is_alloc = 1;
     return ios;
 }
@@ -102,7 +104,7 @@ void _z_iosli_clear(_z_iosli_t *ios)
 void _z_iosli_free(_z_iosli_t *ios)
 {
     if (ios->is_alloc)
-        free(ios->buf);
+        vPortFree(ios->buf);
     ios = NULL;
 }
 
@@ -224,7 +226,7 @@ void _z_wbuf_add_iosli(_z_wbuf_t *wbf, _z_iosli_t *ios)
 void _z_wbuf_add_iosli_from(_z_wbuf_t *wbf, const uint8_t *buf, size_t capacity)
 {
     _z_iosli_t sios = _z_iosli_make(capacity);
-    _z_iosli_t *pios = (_z_iosli_t *)malloc(sizeof(_z_iosli_t));
+    _z_iosli_t *pios = (_z_iosli_t *)pvPortMalloc(sizeof(_z_iosli_t));
     memcpy(pios, &sios, sizeof(_z_iosli_t));
     memcpy(pios->buf, buf, capacity);
     pios->w_pos = pios->capacity;
@@ -235,7 +237,7 @@ void _z_wbuf_add_iosli_from(_z_wbuf_t *wbf, const uint8_t *buf, size_t capacity)
 void _z_wbuf_new_iosli(_z_wbuf_t *wbf, size_t capacity)
 {
     _z_iosli_t sios = _z_iosli_make(capacity);
-    _z_iosli_t *pios = (_z_iosli_t *)malloc(sizeof(_z_iosli_t));
+    _z_iosli_t *pios = (_z_iosli_t *)pvPortMalloc(sizeof(_z_iosli_t));
     memcpy(pios, &sios, sizeof(_z_iosli_t));
 
     _z_wbuf_add_iosli(wbf, pios);

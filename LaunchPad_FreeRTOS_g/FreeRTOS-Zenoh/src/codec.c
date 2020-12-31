@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/private/codec.h"
 #include "zenoh-pico/net/private/codec.h"
 #include "zenoh-pico/net/private/codec.h"
@@ -104,8 +106,9 @@ _z_str_result_t _z_str_decode(_z_rbuf_t *rbf)
     _z_zint_result_t vr = _z_zint_decode(rbf);
     _ASSURE_RESULT(vr, r, _z_err_t_PARSE_ZINT);
     size_t len = vr.value.zint;
+    size_t a = _z_iosli_readable(&rbf->ios);
     // Allocate space for the string terminator
-    z_str_t s = (z_str_t)malloc(len + 1);
+    z_str_t s = (z_str_t)pvPortMalloc(len + 1);
     s[len] = '\0';
     _z_rbuf_read_bytes(rbf, (uint8_t *)s, 0, len);
     r.value.str = s;

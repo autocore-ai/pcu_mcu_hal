@@ -14,29 +14,24 @@
 
 #ifndef _ZENOH_NET_PICO_SYSTEM_H
 #define _ZENOH_NET_PICO_SYSTEM_H
-
-#if (ZENOH_LINUX == 1) || (ZENOH_MACOS == 1)
-#include "zenoh-pico/net/private/system/unix.h"
-#elif (ZENOH_CONTIKI == 1)
-#include "zenoh-pico/net/private/contiki/types.h"
-#endif
-
+#include "zenoh-pico/net/private/system/freertos.h"
+#include "FreeRTOS_Sockets.h"
 /*------------------ Network ------------------*/
-// @TODO: remove the platform-specific include and data types
-#include <netinet/in.h>
+// @TODO: remove the platform-s
+//pecific include and data types
 #include "zenoh-pico/net/private/result.h"
 
 _ZN_RESULT_DECLARE(_zn_socket_t, socket)
 
-char *_zn_select_scout_iface(void);
+
 _zn_socket_result_t _zn_open_tx_session(const char *locator);
 void _zn_close_tx_session(_zn_socket_t sock);
 
-struct sockaddr_in *_zn_make_socket_address(const char *addr, int port);
+struct freertos_sockaddr *_zn_make_socket_address(const char *addr, int port);
 _zn_socket_result_t _zn_create_udp_socket(const char *addr, int port, int recv_timeout);
 
-int _zn_send_dgram_to(_zn_socket_t sock, const _z_wbuf_t *wbf, const struct sockaddr *dest, socklen_t salen);
-int _zn_recv_dgram_from(_zn_socket_t sock, _z_rbuf_t *rbf, struct sockaddr *from, socklen_t *salen);
+int _zn_send_dgram_to(_zn_socket_t sock, const _z_wbuf_t *wbf, const struct freertos_sockaddr *dest, socklen_t salen);
+int _zn_recv_dgram_from(_zn_socket_t sock, _z_rbuf_t *rbf, struct freertos_sockaddr *from, socklen_t *salen);
 
 int _zn_send_wbuf(_zn_socket_t sock, const _z_wbuf_t *wbf);
 int _zn_recv_rbuf(_zn_socket_t sock, _z_rbuf_t *rbf);

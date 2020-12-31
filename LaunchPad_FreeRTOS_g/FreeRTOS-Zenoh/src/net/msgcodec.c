@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/private/codec.h"
 #include "zenoh-pico/private/collection.h"
 #include "zenoh-pico/private/logging.h"
@@ -127,7 +129,7 @@ void _zn_subinfo_decode_na(_z_rbuf_t *rbf, uint8_t header, _zn_subinfo_result_t 
     {
         _zn_period_result_t r_tp = _zn_period_decode(rbf);
         _ASSURE_P_RESULT(r_tp, r, _zn_err_t_PARSE_PERIOD)
-        zn_period_t *p_per = (zn_period_t *)malloc(sizeof(zn_period_t));
+        zn_period_t *p_per = (zn_period_t *)pvPortMalloc(sizeof(zn_period_t));
         memcpy(p_per, &r_tp.value.period, sizeof(zn_period_t));
         r->value.subinfo.period = p_per;
     }
@@ -147,7 +149,7 @@ _zn_subinfo_result_t _zn_subinfo_decode(_z_rbuf_t *rbf, uint8_t header)
 void _zn_subinfo_free(zn_subinfo_t *si)
 {
     if (si->period)
-        free(si->period);
+        vPortFree(si->period);
 }
 
 /*------------------ ResKey Field ------------------*/
@@ -199,7 +201,7 @@ void _zn_reskey_free(zn_reskey_t *rk)
     rk->rid = 0;
     if (rk->rname)
     {
-        free(rk->rname);
+        vPortFree(rk->rname);
         rk->rname = NULL;
     }
 }
@@ -799,10 +801,10 @@ void _zn_declare_decode_na(_z_rbuf_t *rbf, _zn_declare_result_t *r)
     _ASSURE_P_RESULT(r_dlen, r, _z_err_t_PARSE_ZINT)
     size_t len = (size_t)r_dlen.value.zint;
 
-    r->value.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+    r->value.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
     r->value.declare.declarations.len = len;
 
-    _zn_declaration_result_t *r_decl = (_zn_declaration_result_t *)malloc(sizeof(_zn_declaration_result_t));
+    _zn_declaration_result_t *r_decl = (_zn_declaration_result_t *)pvPortMalloc(sizeof(_zn_declaration_result_t));
     for (size_t i = 0; i < len; ++i)
     {
         _zn_declaration_decode_na(rbf, r_decl);
@@ -817,12 +819,12 @@ void _zn_declare_decode_na(_z_rbuf_t *rbf, _zn_declare_result_t *r)
 
             for (size_t j = 0; j < i; ++j)
                 _zn_declaration_free(&r->value.declare.declarations.val[j]);
-            free(r->value.declare.declarations.val);
+            vPortFree(r->value.declare.declarations.val);
 
             break;
         }
     }
-    free(r_decl);
+    vPortFree(r_decl);
 }
 
 _zn_declare_result_t _zn_declare_decode(_z_rbuf_t *rbf)
@@ -836,7 +838,7 @@ void _zn_declare_free(_zn_declare_t *dcl)
 {
     for (size_t i = 0; i < dcl->declarations.len; ++i)
         _zn_declaration_free(&dcl->declarations.val[i]);
-    free(dcl->declarations.val);
+    vPortFree(dcl->declarations.val);
 }
 
 /*------------------ Data Info Field ------------------*/
@@ -1220,7 +1222,7 @@ _zn_query_result_t _zn_query_decode(_z_rbuf_t *rbf, uint8_t header)
 void _zn_query_free(_zn_query_t *msg)
 {
     _zn_reskey_free(&msg->key);
-    free(msg->predicate);
+    vPortFree(msg->predicate);
 }
 
 /*------------------ Zenoh Message ------------------*/
@@ -1341,12 +1343,12 @@ void _zn_zenoh_message_free(_zn_zenoh_message_t *msg)
     if (msg->attachment)
     {
         _zn_attachment_free(msg->attachment);
-        free(msg->attachment);
+        vPortFree(msg->attachment);
     }
     if (msg->reply_context)
     {
         _zn_reply_context_free(msg->reply_context);
-        free(msg->reply_context);
+        vPortFree(msg->reply_context);
     }
 
     uint8_t mid = _ZN_MID(msg->header);
@@ -2049,7 +2051,6 @@ void _zn_session_message_decode_na(_z_rbuf_t *rbf, _zn_session_message_p_result_
         default:
         {
             r->tag = _z_res_t_ERR;
-            r->value.error = _zn_err_t_PARSE_SESSION_MESSAGE;
             _Z_ERROR("WARNING: Trying to decode session message with unknown ID(%d)\n", mid);
             return;
         }
@@ -2070,7 +2071,7 @@ void _zn_session_message_free(_zn_session_message_t *msg)
     if (msg->attachment)
     {
         _zn_attachment_free(msg->attachment);
-        free(msg->attachment);
+        vPortFree(msg->attachment);
     }
 
     uint8_t mid = _ZN_MID(msg->header);

@@ -12,9 +12,27 @@
  *   ADLINK zenoh team, <zenoh@adlink-labs.tech>
  */
 
-#ifndef _ZENOH_NET_PICO_UNIX_TYPES_H
-#define _ZENOH_NET_PICO_UNIX_TYPES_H
+#ifndef _ZENOH_PICO_FREERTOS_TYPES_H
+#define _ZENOH_PICO_FREERTOS_TYPES_H
 
-typedef int _zn_socket_t;
+#include <time.h>
+#include "os_task.h"
 
-#endif /* _ZENOH_NET_PICO_UNIX_TYPES_H_ */
+typedef TaskHandle_t _z_task_t;
+
+struct _sys_mut {
+  void *mut;
+};
+typedef struct _sys_mut _z_mutex_t;
+
+struct _sys_sem {
+  void *sem;
+};
+typedef struct _sys_sem _z_condvar_t;
+
+struct _sys_timeval{
+    time_t pulSeconds;
+    time_t pulMsec;
+};
+typedef struct _sys_timeval _z_time_t;
+#endif /* _ZENOH_PICO_UNIX_TYPES_H_ */

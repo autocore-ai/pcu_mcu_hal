@@ -11,7 +11,8 @@
  * Contributors:
  *   ADLINK zenoh team, <zenoh@adlink-labs.tech>
  */
-
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/net/private/internal.h"
 #include "zenoh-pico/net/private/msg.h"
 #include "zenoh-pico/net/private/msgcodec.h"
@@ -25,8 +26,17 @@
 zn_reskey_t _zn_reskey_clone(const zn_reskey_t *reskey)
 {
     zn_reskey_t rk;
-    rk.rid = reskey->rid,
-    rk.rname = reskey->rname ? strdup(reskey->rname) : NULL;
+    rk.rid = reskey->rid;
+    if(reskey->rname)
+    {
+         rk.rname = (z_str_t)pvPortMalloc(strlen(reskey->rname)+1);
+         snprintf(rk.rname,strlen(reskey->rname)+1,reskey->rname);
+
+    }
+    else
+    {
+        rk.rname = NULL;
+    }    
     return rk;
 }
 
@@ -63,7 +73,7 @@ _zn_zenoh_message_t _zn_zenoh_message_init(uint8_t header)
 
 _zn_reply_context_t *_zn_reply_context_init(void)
 {
-    _zn_reply_context_t *rc = (_zn_reply_context_t *)malloc(sizeof(_zn_reply_context_t));
+    _zn_reply_context_t *rc = (_zn_reply_context_t *)pvPortMalloc(sizeof(_zn_reply_context_t));
     memset(rc, 0, sizeof(_zn_reply_context_t));
     rc->header = _ZN_MID_REPLY_CONTEXT;
     return rc;
@@ -71,7 +81,7 @@ _zn_reply_context_t *_zn_reply_context_init(void)
 
 _zn_attachment_t *_zn_attachment_init(void)
 {
-    _zn_attachment_t *att = (_zn_attachment_t *)malloc(sizeof(_zn_attachment_t));
+    _zn_attachment_t *att = (_zn_attachment_t *)pvPortMalloc(sizeof(_zn_attachment_t));
     memset(att, 0, sizeof(_zn_attachment_t));
     att->header = _ZN_MID_ATTACHMENT;
     return att;
@@ -265,7 +275,7 @@ int _zn_send_z_msg(zn_session_t *zn, _zn_zenoh_message_t *z_msg, zn_reliability_
     else
     {
         int locked = _z_mutex_trylock(&zn->mutex_tx);
-        if (locked != 0)
+        if (locked != 1)
         {
             _Z_DEBUG("Dropping zenoh message because of congestion control\n");
             // We failed to acquire the lock, drop the message
@@ -391,8 +401,9 @@ void _zn_recv_s_msg_na(zn_session_t *zn, _zn_session_message_p_result_t *r)
     }
     _z_rbuf_set_wpos(&zn->rbuf, _ZN_MSG_LEN_ENC_SIZE);
 
-    uint16_t len = _z_rbuf_read(&zn->rbuf) | (_z_rbuf_read(&zn->rbuf) << 8);
-    _Z_DEBUG_VA(">> \t msg len = %hu\n", len);
+    uint16_t len = _z_rbuf_read(&zn->rbuf);
+    len |=  (_z_rbuf_read(&zn->rbuf) << 8);
+    printf(">> \t msg len = %hu\n", len);
     size_t writable = _z_rbuf_capacity(&zn->rbuf) - _z_rbuf_len(&zn->rbuf);
     if (writable < len)
     {
@@ -502,8 +513,9 @@ z_str_t __unsafe_zn_get_resource_name_from_key(zn_session_t *zn, int is_local, c
 
     // Case 2) -> string only reskey, duplicate the rname
     if (reskey->rid == ZN_RESOURCE_ID_NONE)
-    {
-        rname = strdup(reskey->rname);
+    {       
+        rname = (z_str_t)pvPortMalloc(strlen(reskey->rname)+1);
+        snprintf(rname,strlen(reskey->rname)+1,reskey->rname);
         return rname;
     }
 
@@ -539,7 +551,7 @@ z_str_t __unsafe_zn_get_resource_name_from_key(zn_session_t *zn, int is_local, c
     } while (id != ZN_RESOURCE_ID_NONE);
 
     // Concatenate all the partial resource names
-    rname = (z_str_t)malloc(len + 1);
+    rname = (z_str_t)pvPortMalloc(len + 1);
     // Start with a zero-length string to concatenate upon
     rname[0] = '\0';
     while (strs)
@@ -582,13 +594,13 @@ _zn_resource_t *__unsafe_zn_get_resource_matching_key(zn_session_t *zn, int is_l
 
         // Free the resource key if allocated
         if (decl->key.rid != ZN_RESOURCE_ID_NONE)
-            free(lname);
+            vPortFree(lname);
 
         // Exit if it inersects
         if (res)
         {
             if (reskey->rid != ZN_RESOURCE_ID_NONE)
-                free(rname);
+                vPortFree(rname);
             return decl;
         }
 
@@ -596,7 +608,7 @@ _zn_resource_t *__unsafe_zn_get_resource_matching_key(zn_session_t *zn, int is_l
     }
 
     if (reskey->rid != ZN_RESOURCE_ID_NONE)
-        free(rname);
+        vPortFree(rname);
 
     return NULL;
 }
@@ -655,7 +667,7 @@ _z_list_t *__unsafe_zn_get_subscriptions_from_remote_key(zn_session_t *zn, const
                 xs = _z_list_cons(xs, sub);
 
             if (sub->key.rid != ZN_RESOURCE_ID_NONE)
-                free(lname);
+                vPortFree(lname);
 
             subs = _z_list_tail(subs);
         }
@@ -694,12 +706,12 @@ _z_list_t *__unsafe_zn_get_subscriptions_from_remote_key(zn_session_t *zn, const
                 xs = _z_list_cons(xs, sub);
 
             if (sub->key.rid != ZN_RESOURCE_ID_NONE)
-                free(lname);
+                vPortFree(lname);
 
             subs = _z_list_tail(subs);
         }
 
-        free(rname);
+        vPortFree(rname);
     }
 
     return xs;
@@ -781,7 +793,7 @@ _z_list_t *__unsafe_zn_get_queryables_from_remote_key(zn_session_t *zn, const zn
                 xs = _z_list_cons(xs, qle);
 
             if (qle->key.rid != ZN_RESOURCE_ID_NONE)
-                free(lname);
+                vPortFree(lname);
 
             qles = _z_list_tail(qles);
         }
@@ -820,12 +832,12 @@ _z_list_t *__unsafe_zn_get_queryables_from_remote_key(zn_session_t *zn, const zn
                 xs = _z_list_cons(xs, qle);
 
             if (qle->key.rid != ZN_RESOURCE_ID_NONE)
-                free(lname);
+                vPortFree(lname);
 
             qles = _z_list_tail(qles);
         }
 
-        free(rname);
+        vPortFree(rname);
     }
 
     return xs;
@@ -972,7 +984,7 @@ void _zn_unregister_resource(zn_session_t *zn, int is_local, _zn_resource_t *res
         zn->local_resources = _z_list_remove(zn->local_resources, __unsafe_zn_resource_predicate, res);
     else
         zn->remote_resources = _z_list_remove(zn->remote_resources, __unsafe_zn_resource_predicate, res);
-    free(res);
+    vPortFree(res);
 
     // Release the lock
     _z_mutex_unlock(&zn->mutex_inner);
@@ -987,7 +999,7 @@ void _zn_flush_resources(zn_session_t *zn)
     {
         _zn_resource_t *res = (_zn_resource_t *)_z_list_head(zn->local_resources);
         __unsafe_zn_free_resource(res);
-        free(res);
+        vPortFree(res);
         zn->local_resources = _z_list_pop(zn->local_resources);
     }
 
@@ -995,7 +1007,7 @@ void _zn_flush_resources(zn_session_t *zn)
     {
         _zn_resource_t *res = (_zn_resource_t *)_z_list_head(zn->remote_resources);
         __unsafe_zn_free_resource(res);
-        free(res);
+        vPortFree(res);
         zn->remote_resources = _z_list_pop(zn->remote_resources);
     }
 
@@ -1091,7 +1103,7 @@ void __unsafe_zn_add_loc_sub_to_rem_res_map(zn_session_t *zn, _zn_subscriber_t *
     }
 
     if (sub->key.rid != ZN_RESOURCE_ID_NONE)
-        free(loc_key.rname);
+        vPortFree(loc_key.rname);
 }
 
 _z_list_t *_zn_get_subscriptions_from_remote_key(zn_session_t *zn, const zn_reskey_t *reskey)
@@ -1148,7 +1160,7 @@ void __unsafe_zn_free_subscription(_zn_subscriber_t *sub)
 {
     _zn_reskey_free(&sub->key);
     if (sub->info.period)
-        free(sub->info.period);
+        vPortFree(sub->info.period);
 }
 
 /**
@@ -1180,7 +1192,7 @@ void _zn_unregister_subscription(zn_session_t *zn, int is_local, _zn_subscriber_
         zn->local_subscriptions = _z_list_remove(zn->local_subscriptions, __unsafe_zn_subscription_predicate, s);
     else
         zn->remote_subscriptions = _z_list_remove(zn->remote_subscriptions, __unsafe_zn_subscription_predicate, s);
-    free(s);
+    vPortFree(s);
 
     // Release the lock
     _z_mutex_unlock(&zn->mutex_inner);
@@ -1195,7 +1207,7 @@ void _zn_flush_subscriptions(zn_session_t *zn)
     {
         _zn_subscriber_t *sub = (_zn_subscriber_t *)_z_list_head(zn->local_subscriptions);
         __unsafe_zn_free_subscription(sub);
-        free(sub);
+        vPortFree(sub);
         zn->local_subscriptions = _z_list_pop(zn->local_subscriptions);
     }
 
@@ -1203,7 +1215,7 @@ void _zn_flush_subscriptions(zn_session_t *zn)
     {
         _zn_subscriber_t *sub = (_zn_subscriber_t *)_z_list_head(zn->remote_subscriptions);
         __unsafe_zn_free_subscription(sub);
-        free(sub);
+        vPortFree(sub);
         zn->remote_subscriptions = _z_list_pop(zn->remote_subscriptions);
     }
     _z_i_map_free(zn->rem_res_loc_sub_map);
@@ -1256,7 +1268,7 @@ void _zn_trigger_subscriptions(zn_session_t *zn, const zn_reskey_t reskey, const
         }
 
         if (res->key.rid != ZN_RESOURCE_ID_NONE)
-            free(rname);
+            vPortFree(rname);
     }
     // Case 2) -> string only reskey
     else if (reskey.rid == ZN_RESOURCE_ID_NONE)
@@ -1291,7 +1303,7 @@ void _zn_trigger_subscriptions(zn_session_t *zn, const zn_reskey_t reskey, const
                 sub->callback(&s, sub->arg);
 
             if (sub->key.rid != ZN_RESOURCE_ID_NONE)
-                free(rname);
+                vPortFree(rname);
 
             subs = _z_list_tail(subs);
         }
@@ -1334,12 +1346,12 @@ void _zn_trigger_subscriptions(zn_session_t *zn, const zn_reskey_t reskey, const
                 sub->callback(&s, sub->arg);
 
             if (sub->key.rid != ZN_RESOURCE_ID_NONE)
-                free(lname);
+                vPortFree(lname);
 
             subs = _z_list_tail(subs);
         }
 
-        free(rname);
+        vPortFree(rname);
     }
 
 EXIT_SUB_TRIG:
@@ -1414,7 +1426,7 @@ void __unsafe_zn_free_pending_reply(_zn_pending_reply_t *pr)
 {
     // Free the sample
     if (pr->reply.data.data.key.val)
-        free((z_str_t)pr->reply.data.data.key.val);
+        vPortFree((z_str_t)pr->reply.data.data.key.val);
     if (pr->reply.data.data.value.val)
         _z_bytes_free(&pr->reply.data.data.value);
 
@@ -1436,7 +1448,7 @@ void __unsafe_zn_free_pending_query(_zn_pending_query_t *pen_qry)
 {
     _zn_reskey_free(&pen_qry->key);
     if (pen_qry->predicate)
-        free((z_str_t)pen_qry->predicate);
+        vPortFree((z_str_t)pen_qry->predicate);
 
     while (pen_qry->pending_replies)
     {
@@ -1474,7 +1486,7 @@ int __unsafe_zn_pending_query_predicate(void *other, void *this)
 void __unsafe_zn_unregister_pending_query(zn_session_t *zn, _zn_pending_query_t *pen_qry)
 {
     zn->pending_queries = _z_list_remove(zn->pending_queries, __unsafe_zn_pending_query_predicate, pen_qry);
-    free(pen_qry);
+    vPortFree(pen_qry);
 }
 
 void _zn_unregister_pending_query(zn_session_t *zn, _zn_pending_query_t *pen_qry)
@@ -1496,11 +1508,11 @@ void _zn_flush_pending_queries(zn_session_t *zn)
         {
             _zn_pending_reply_t *pre = (_zn_pending_reply_t *)_z_list_head(pqy->pending_replies);
             __unsafe_zn_free_pending_reply(pre);
-            free(pre);
+            vPortFree(pre);
             pqy->pending_replies = _z_list_pop(pqy->pending_replies);
         }
         __unsafe_zn_free_pending_query(pqy);
-        free(pqy);
+        vPortFree(pqy);
         zn->pending_queries = _z_list_pop(zn->pending_queries);
     }
 
@@ -1575,7 +1587,7 @@ void _zn_trigger_query_reply_partial(zn_session_t *zn,
                 {
                     _Z_DEBUG(">>> Reply received with old timestamp\n");
                     if (reskey.rid != ZN_RESOURCE_ID_NONE)
-                        free((z_str_t)reply.data.data.key.val);
+                        vPortFree((z_str_t)reply.data.data.key.val);
                     goto EXIT_QRY_TRIG_PAR;
                 }
                 else
@@ -1610,7 +1622,7 @@ void _zn_trigger_query_reply_partial(zn_session_t *zn,
         // Allocate a pending reply if needed
         _zn_pending_reply_t *pen_rep;
         if (latest == NULL)
-            pen_rep = (_zn_pending_reply_t *)malloc(sizeof(_zn_pending_reply_t));
+            pen_rep = (_zn_pending_reply_t *)pvPortMalloc(sizeof(_zn_pending_reply_t));
         else
             pen_rep = latest;
 
@@ -1620,7 +1632,10 @@ void _zn_trigger_query_reply_partial(zn_session_t *zn,
         // Make a copy of the sample if needed
         _z_bytes_copy((z_bytes_t *)&pen_rep->reply.data.data.value, (z_bytes_t *)&reply.data.data.value);
         if (reskey.rid == ZN_RESOURCE_ID_NONE)
-            pen_rep->reply.data.data.key.val = strdup(reply.data.data.key.val);
+        {
+            pen_rep->reply.data.data.key.val = (z_str_t)pvPortMalloc(strlen(reply.data.data.key.val));
+            strncpy(pen_rep->reply.data.data.key.val,reply.data.data.key.val,strlen(reply.data.data.key.val));
+        }
         else
             pen_rep->reply.data.data.key.val = reply.data.data.key.val;
         pen_rep->reply.data.data.key.len = reply.data.data.key.len;
@@ -1644,7 +1659,7 @@ void _zn_trigger_query_reply_partial(zn_session_t *zn,
         // Allocate a pending reply if needed
         _zn_pending_reply_t *pen_rep;
         if (latest == NULL)
-            pen_rep = (_zn_pending_reply_t *)malloc(sizeof(_zn_pending_reply_t));
+            pen_rep = (_zn_pending_reply_t *)pvPortMalloc(sizeof(_zn_pending_reply_t));
         else
             pen_rep = latest;
 
@@ -1655,7 +1670,10 @@ void _zn_trigger_query_reply_partial(zn_session_t *zn,
         // Copy the resource key
         pen_rep->reply.data.data.value = payload;
         if (reskey.rid == ZN_RESOURCE_ID_NONE)
-            pen_rep->reply.data.data.key.val = strdup(reply.data.data.key.val);
+        {
+            pen_rep->reply.data.data.key.val = (z_str_t)pvPortMalloc(strlen(reply.data.data.key.val));
+            strncpy(pen_rep->reply.data.data.key.val , reply.data.data.key.val,strlen(reply.data.data.key.val));
+        }            
         else
             pen_rep->reply.data.data.key.val = reply.data.data.key.val;
         pen_rep->reply.data.data.key.len = reply.data.data.key.len;
@@ -1690,7 +1708,7 @@ void _zn_trigger_query_reply_partial(zn_session_t *zn,
 
         // Free the resource name if allocated
         if (reskey.rid != ZN_RESOURCE_ID_NONE)
-            free((char *)reply.data.data.key.val);
+            vPortFree((char *)reply.data.data.key.val);
 
         break;
     }
@@ -1738,7 +1756,7 @@ void _zn_trigger_query_reply_final(zn_session_t *zn, const _zn_reply_context_t *
         }
         // Free the element
         __unsafe_zn_free_pending_reply(pen_rep);
-        free(pen_rep);
+        vPortFree(pen_rep);
         pen_qry->pending_replies = _z_list_pop(pen_qry->pending_replies);
     }
 
@@ -1803,7 +1821,7 @@ void __unsafe_zn_add_loc_qle_to_rem_res_map(zn_session_t *zn, _zn_queryable_t *q
     }
 
     if (qle->key.rid != ZN_RESOURCE_ID_NONE)
-        free(loc_key.rname);
+        vPortFree(loc_key.rname);
 }
 
 _zn_queryable_t *_zn_get_queryable_by_id(zn_session_t *zn, z_zint_t id)
@@ -1878,7 +1896,7 @@ void _zn_unregister_queryable(zn_session_t *zn, _zn_queryable_t *qle)
     _z_mutex_lock(&zn->mutex_inner);
 
     zn->local_queryables = _z_list_remove(zn->local_queryables, __unsafe_zn_queryable_predicate, qle);
-    free(qle);
+    vPortFree(qle);
 
     // Release the lock
     _z_mutex_unlock(&zn->mutex_inner);
@@ -1893,7 +1911,7 @@ void _zn_flush_queryables(zn_session_t *zn)
     {
         _zn_queryable_t *qle = (_zn_queryable_t *)_z_list_head(zn->local_queryables);
         __unsafe_zn_free_queryable(qle);
-        free(qle);
+        vPortFree(qle);
         zn->local_queryables = _z_list_pop(zn->local_queryables);
     }
     _z_i_map_free(zn->rem_res_loc_qle_map);
@@ -1952,7 +1970,7 @@ void _zn_trigger_queryables(zn_session_t *zn, const _zn_query_t *query)
         }
 
         if (res->key.rid != ZN_RESOURCE_ID_NONE)
-            free(rname);
+            vPortFree(rname);
     }
     // Case 2) -> string only reskey
     else if (query->key.rid == ZN_RESOURCE_ID_NONE)
@@ -1995,7 +2013,7 @@ void _zn_trigger_queryables(zn_session_t *zn, const _zn_query_t *query)
                 }
 
                 if (qle->key.rid != ZN_RESOURCE_ID_NONE)
-                    free(rname);
+                    vPortFree(rname);
             }
 
             qles = _z_list_tail(qles);
@@ -2046,13 +2064,13 @@ void _zn_trigger_queryables(zn_session_t *zn, const _zn_query_t *query)
                 }
 
                 if (qle->key.rid != ZN_RESOURCE_ID_NONE)
-                    free(lname);
+                    vPortFree(lname);
             }
 
             qles = _z_list_tail(qles);
         }
 
-        free(rname);
+        vPortFree(rname);
     }
 
     // Send the final reply

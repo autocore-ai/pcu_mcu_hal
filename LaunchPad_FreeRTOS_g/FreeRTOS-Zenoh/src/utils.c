@@ -18,12 +18,13 @@
 z_string_t z_string_make(const char *value)
 {
     z_string_t s;
-    s.val = strdup(value);
     s.len = strlen(value);
+    s.val = pvPortMalloc(s.len ); 
+    strncpy(s.val,value,s.len);
     return s;
 }
 
 void z_string_free(z_string_t *s)
 {
-    free((char *)s->val);
+    vPortFree((char *)s->val);
 }

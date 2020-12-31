@@ -20,12 +20,8 @@
 #include "zenoh-pico/net/config.h"
 #include "zenoh-pico/private/collection.h"
 #include "zenoh-pico/private/iobuf.h"
+#include "zenoh-pico/net/private/system/freertos.h"
 
-#if (ZENOH_LINUX == 1) || (ZENOH_MACOS == 1)
-#include "zenoh-pico/net/private/system/unix.h"
-#elif (ZENOH_CONTIKI == 1)
-#include "zenoh-pico/net/private/contiki/types.h"
-#endif
 
 /**
  * Whatami values.
