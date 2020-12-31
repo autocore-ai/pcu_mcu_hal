@@ -13,6 +13,8 @@
  */
 
 #include <stdio.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/private/logging.h"
 #include "zenoh-pico/private/codec.h"
 #include "zenoh-pico/net/private/codec.h"

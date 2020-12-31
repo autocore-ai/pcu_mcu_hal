@@ -11,15 +11,18 @@
  * Contributors:
  *   ADLINK zenoh team, <zenoh@adlink-labs.tech>
  */
-
+#include "FreeRTOS.h"
+#include "os_task.h"
+#include <FreeRTOS-Zenoh/include/zenoh-pico/net/private/internal.h>
+#include <FreeRTOS-Zenoh/include/zenoh-pico/net/private/msgcodec.h>
+#include <FreeRTOS-Zenoh/include/zenoh-pico/net/private/system.h>
+#include <FreeRTOS-Zenoh/include/zenoh-pico/net.h>
+#include <FreeRTOS-Zenoh/include/zenoh-pico/private/collection.h>
+#include <FreeRTOS-Zenoh/include/zenoh-pico/private/logging.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "zenoh-pico/net.h"
-#include "zenoh-pico/net/private/internal.h"
-#include "zenoh-pico/net/private/msgcodec.h"
-#include "zenoh-pico/net/private/system.h"
-#include "zenoh-pico/private/collection.h"
-#include "zenoh-pico/private/logging.h"
+#include "FreeRTOS_Sockets.h"
+#include "FreeRTOS_IP.h"
 
 /*=============================*/
 /*          Private            */
@@ -27,7 +30,7 @@
 /*------------------ Init/Free/Close session ------------------*/
 zn_session_t *_zn_session_init()
 {
-    zn_session_t *zn = (zn_session_t *)malloc(sizeof(zn_session_t));
+    zn_session_t *zn = (zn_session_t *)pvPortMalloc(sizeof(zn_session_t));
 
     // Initialize the read and write buffers
     zn->wbuf = _z_wbuf_make(ZN_WRITE_BUF_LEN, 0);
@@ -66,10 +69,10 @@ zn_session_t *_zn_session_init()
 
     zn->local_subscriptions = _z_list_empty;
     zn->remote_subscriptions = _z_list_empty;
-    zn->rem_res_loc_sub_map = _z_i_map_make(_Z_DEFAULT_I_MAP_CAPACITY);
+    zn->rem_res_loc_sub_map = _z_list_empty;//_z_i_map_make(1);
 
     zn->local_queryables = _z_list_empty;
-    zn->rem_res_loc_qle_map = _z_i_map_make(_Z_DEFAULT_I_MAP_CAPACITY);
+    zn->rem_res_loc_qle_map = _z_list_empty;//_z_i_map_make(1);
 
     zn->pending_queries = _z_list_empty;
 
@@ -112,13 +115,13 @@ void _zn_session_free(zn_session_t *zn)
     _z_bytes_free(&zn->remote_pid);
 
     // Clean up the locator
-    free(zn->locator);
+    vPortFree(zn->locator);
 
     // Clean up the tasks
-    free(zn->read_task);
-    free(zn->lease_task);
+    vPortFree(zn->read_task);
+    vPortFree(zn->lease_task);
 
-    free(zn);
+    vPortFree(zn);
 
     zn = NULL;
 }
@@ -171,7 +174,7 @@ void _zn_default_on_disconnect(void *vz)
 zn_hello_array_t _zn_scout_loop(
     _zn_socket_t socket,
     const _z_wbuf_t *wbf,
-    const struct sockaddr *dest,
+    const struct freertos_sockaddr *dest,
     socklen_t salen,
     clock_t period,
     int exit_on_first)
@@ -190,14 +193,14 @@ zn_hello_array_t _zn_scout_loop(
     }
 
     // @TODO: need to abstract the platform-specific data types
-    struct sockaddr *from = (struct sockaddr *)malloc(2 * sizeof(struct sockaddr_in *));
+    struct freertos_sockaddr *from = (struct freertos_sockaddr *)pvPortMalloc(2 * sizeof(struct freertos_sockaddr *));
     socklen_t flen = 0;
 
     // The receiving buffer
     _z_rbuf_t rbf = _z_rbuf_make(ZN_READ_BUF_LEN);
 
-    _z_clock_t start = _z_clock_now();
-    while (_z_clock_elapsed_ms(&start) < period)
+    _z_time_t start = _z_time_now();
+    while (_z_time_elapsed_ms(&start) < period)
     {
         // Eventually read hello messages
         _z_rbuf_clear(&rbf);
@@ -222,14 +225,14 @@ zn_hello_array_t _zn_scout_loop(
             // Allocate or expand the vector
             if (ls.val)
             {
-                zn_hello_t *val = (zn_hello_t *)malloc((ls.len + 1) * sizeof(zn_hello_t));
+                zn_hello_t *val = (zn_hello_t *)pvPortMalloc((ls.len + 1) * sizeof(zn_hello_t));
                 memcpy(val, ls.val, ls.len);
-                free((zn_hello_t *)ls.val);
+                vPortFree((zn_hello_t *)ls.val);
                 ls.val = val;
             }
             else
             {
-                ls.val = (zn_hello_t *)malloc(sizeof(zn_hello_t));
+                ls.val = (zn_hello_t *)pvPortMalloc(sizeof(zn_hello_t));
             }
             ls.len++;
 
@@ -274,24 +277,26 @@ zn_hello_array_t _zn_scout_loop(
             break;
     }
 
-    free(from);
+    vPortFree(from);
     _z_rbuf_free(&rbf);
 
     return ls;
 }
-
+extern  uint8_t remoteIPAddress[4];
 zn_hello_array_t _zn_scout(unsigned int what, zn_properties_t *config, unsigned long scout_period, int exit_on_first)
 {
     zn_hello_array_t locs;
     locs.len = 0;
     locs.val = NULL;
 
-    z_str_t addr = _zn_select_scout_iface();
+    z_str_t addr;
+    uint32_t Remoteaddr = FreeRTOS_inet_addr_quick(remoteIPAddress[0],remoteIPAddress[1],remoteIPAddress[2],remoteIPAddress[3]);
+    FreeRTOS_inet_ntoa(Remoteaddr,addr);
     _zn_socket_result_t r = _zn_create_udp_socket(addr, 0, scout_period);
     if (r.tag == _z_res_t_ERR)
     {
         _Z_DEBUG("Unable to create scouting socket\n");
-        free(addr);
+        vPortFree(addr);
         return locs;
     }
 
@@ -309,17 +314,19 @@ zn_hello_array_t _zn_scout(unsigned int what, zn_properties_t *config, unsigned 
     _zn_session_message_encode(&wbf, &scout);
 
     // Scout on multicast
-    z_str_t sock_addr = strdup(zn_properties_get(config, ZN_CONFIG_MULTICAST_ADDRESS_KEY).val);
+    size_t sock_addr_len = zn_properties_get(config, ZN_CONFIG_MULTICAST_ADDRESS_KEY).len;
+    z_str_t sock_addr = (z_str_t)pvPortMalloc(sock_addr_len);
+    strncpy(sock_addr,zn_properties_get(config, ZN_CONFIG_MULTICAST_ADDRESS_KEY).val,sock_addr_len);    
     z_str_t ip_addr = strtok(sock_addr, ":");
     int port_num = atoi(strtok(NULL, ":"));
 
-    struct sockaddr_in *maddr = _zn_make_socket_address(ip_addr, port_num);
-    socklen_t salen = sizeof(struct sockaddr_in);
-    locs = _zn_scout_loop(r.value.socket, &wbf, (struct sockaddr *)maddr, salen, scout_period, exit_on_first);
-    free(maddr);
+    struct freertos_sockaddr *maddr = _zn_make_socket_address(ip_addr, port_num);
+    socklen_t salen = sizeof(struct freertos_sockaddr);
+    locs = _zn_scout_loop(r.value.socket, &wbf, (struct freertos_sockaddr *)maddr, salen, scout_period, exit_on_first);
+    vPortFree(maddr);
 
-    free(sock_addr);
-    free(addr);
+    vPortFree(sock_addr);
+    vPortFree(addr);
     _z_wbuf_free(&wbf);
 
     return locs;
@@ -362,16 +369,17 @@ int _zn_handle_zenoh_message(zn_session_t *zn, _zn_zenoh_message_t *msg)
                 zn_reskey_t key = decl.body.res.key;
 
                 // Register remote resource declaration
-                _zn_resource_t *r = (_zn_resource_t *)malloc(sizeof(_zn_resource_t));
+                _zn_resource_t *r = (_zn_resource_t *)pvPortMalloc(sizeof(_zn_resource_t));
                 r->id = id;
                 r->key.rid = key.rid;
-                r->key.rname = strdup(key.rname);
+                r->key.rname = (z_str_t) pvPortMalloc(strlen(key.rname)+1);
+                snprintf(r->key.rname,strlen(key.rname)+1,key.rname);
 
                 int res = _zn_register_resource(zn, _ZN_IS_REMOTE, r);
                 if (res != 0)
                 {
-                    _zn_reskey_free(&r->key);
-                    free(r);
+                    _zn_reskey_free(&r->key);                    
+                    vPortFree(r);
                 }
 
                 break;
@@ -387,7 +395,7 @@ int _zn_handle_zenoh_message(zn_session_t *zn, _zn_zenoh_message_t *msg)
                     // Need to reply with a declare subscriber
                     _zn_zenoh_message_t z_msg = _zn_zenoh_message_init(_ZN_MID_DECLARE);
                     z_msg.body.declare.declarations.len = len;
-                    z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+                    z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
                     while (subs)
                     {
@@ -700,7 +708,7 @@ void zn_hello_array_free(zn_hello_array_t hellos)
                 _z_str_array_free(&h[i].locators);
         }
 
-        free(h);
+        vPortFree(h);
     }
 }
 
@@ -715,65 +723,25 @@ void zn_close(zn_session_t *zn)
     return;
 }
 
-zn_session_t *zn_open(zn_properties_t *config)
+zn_session_t *zn_open(_z_i_gmap_t *config)
 {
     zn_session_t *zn = NULL;
+    static uint32_t xRandomSeed;
 
     int locator_is_scouted = 0;
-    const char *locator = zn_properties_get(config, ZN_CONFIG_PEER_KEY).val;
-
+    const char *locator = _z_i_gmap_get(config, ZN_CONFIG_PEER_KEY);
     if (locator == NULL)
     {
-        // Scout for routers
-        unsigned int what = ZN_ROUTER;
-        const char *mode = zn_properties_get(config, ZN_CONFIG_MODE_KEY).val;
-        if (mode == NULL)
-        {
-            return zn;
-        }
-
-        const char *to = zn_properties_get(config, ZN_CONFIG_SCOUTING_TIMEOUT_KEY).val;
-        if (to == NULL)
-        {
-            to = ZN_CONFIG_SCOUTING_TIMEOUT_DEFAULT;
-        }
-        // The ZN_CONFIG_SCOUTING_TIMEOUT_KEY is expressed in seconds as a float while the
-        // scout loop timeout uses milliseconds granularity
-        clock_t timeout = (clock_t)1000 * strtof(to, NULL);
-        // Scout and return upon the first result
-        zn_hello_array_t locs = _zn_scout(what, config, timeout, 1);
-        if (locs.len > 0)
-        {
-            if (locs.val[0].locators.len > 0)
-            {
-                locator = strdup(locs.val[0].locators.val[0]);
-                // Mark that the locator has been scouted, need to be freed before returning
-                locator_is_scouted = 1;
-            }
-            // Free all the scouted locators
-            zn_hello_array_free(locs);
-        }
-        else
-        {
-            _Z_DEBUG("Unable to scout a zenoh router\n");
-            _Z_ERROR("%sPlease make sure one is running on your network!\n", "");
-            // Free all the scouted locators
-            zn_hello_array_free(locs);
-
-            return zn;
-        }
+       return zn;
     }
 
     // Initialize the PRNG
-    srand(clock());
+    srand(xRandomSeed);
 
     // Attempt to open a socket
     _zn_socket_result_t r_sock = _zn_open_tx_session(locator);
     if (r_sock.tag == _z_res_t_ERR)
-    {
-        if (locator_is_scouted)
-            free((char *)locator);
-
+    {       
         return zn;
     }
 
@@ -814,7 +782,7 @@ zn_session_t *zn_open(zn_properties_t *config)
 
         // Free the locator
         if (locator_is_scouted)
-            free((char *)locator);
+            vPortFree((char *)locator);
 
         // Free
         _zn_session_message_free(&om);
@@ -891,10 +859,14 @@ zn_session_t *zn_open(zn_properties_t *config)
         _z_bytes_copy(&zn->remote_pid, &r_msg.value.session_message->body.accept.apid);
 
         if (locator_is_scouted)
+        {
             zn->locator = (char *)locator;
+        }
         else
-            zn->locator = strdup(locator);
-
+        {
+            zn->locator = pvPortMalloc(strlen(locator)); 
+            strncpy(zn->locator,locator,strlen(locator));
+        }
         zn->on_disconnect = &_zn_default_on_disconnect;
 
         break;
@@ -937,7 +909,8 @@ zn_reskey_t zn_rname(const char *rname)
 {
     zn_reskey_t rk;
     rk.rid = ZN_RESOURCE_ID_NONE;
-    rk.rname = strdup(rname);
+    rk.rname = pvPortMalloc(strlen(rname)+1);
+    snprintf(rk.rname,strlen(rname)+1,rname);
     return rk;
 }
 
@@ -953,21 +926,22 @@ zn_reskey_t zn_rid_with_suffix(unsigned long id, const char *suffix)
 {
     zn_reskey_t rk;
     rk.rid = id;
-    rk.rname = strdup(suffix);
+    rk.rname = pvPortMalloc(strlen(suffix)+1); 
+    snprintf(rk.rname,strlen(suffix)+1,suffix);
     return rk;
 }
 
 /*------------------ Resource Declaration ------------------*/
 z_zint_t zn_declare_resource(zn_session_t *zn, zn_reskey_t reskey)
 {
-    _zn_resource_t *r = (_zn_resource_t *)malloc(sizeof(_zn_resource_t));
+    _zn_resource_t *r = (_zn_resource_t *)pvPortMalloc(sizeof(_zn_resource_t));
     r->id = _zn_get_resource_id(zn);
     r->key = reskey;
 
     int res = _zn_register_resource(zn, _ZN_IS_LOCAL, r);
     if (res != 0)
     {
-        free(r);
+        vPortFree(r);
         return ZN_RESOURCE_ID_NONE;
     }
 
@@ -977,7 +951,7 @@ z_zint_t zn_declare_resource(zn_session_t *zn, zn_reskey_t reskey)
     // We need to declare the resource
     unsigned int len = 1;
     z_msg.body.declare.declarations.len = len;
-    z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+    z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
     // Resource declaration
     z_msg.body.declare.declarations.val[0].header = _ZN_DECL_RESOURCE;
@@ -1006,7 +980,7 @@ void zn_undeclare_resource(zn_session_t *zn, z_zint_t rid)
         // We need to undeclare the resource and the publisher
         unsigned int len = 1;
         z_msg.body.declare.declarations.len = len;
-        z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+        z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
         // Resource declaration
         z_msg.body.declare.declarations.val[0].header = _ZN_DECL_FORGET_RESOURCE;
@@ -1028,7 +1002,7 @@ void zn_undeclare_resource(zn_session_t *zn, z_zint_t rid)
 /*------------------  Publisher Declaration ------------------*/
 zn_publisher_t *zn_declare_publisher(zn_session_t *zn, zn_reskey_t reskey)
 {
-    zn_publisher_t *pub = (zn_publisher_t *)malloc(sizeof(zn_publisher_t));
+    zn_publisher_t *pub = (zn_publisher_t *)pvPortMalloc(sizeof(zn_publisher_t));
     pub->zn = zn;
     pub->key = reskey;
     pub->id = _zn_get_entity_id(zn);
@@ -1038,7 +1012,7 @@ zn_publisher_t *zn_declare_publisher(zn_session_t *zn, zn_reskey_t reskey)
     // We need to declare the resource and the publisher
     unsigned int len = 1;
     z_msg.body.declare.declarations.len = len;
-    z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+    z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
     // Publisher declaration
     z_msg.body.declare.declarations.val[0].header = _ZN_DECL_PUBLISHER;
@@ -1067,7 +1041,7 @@ void zn_undeclare_publisher(zn_publisher_t *pub)
     // We need to undeclare the publisher
     unsigned int len = 1;
     z_msg.body.declare.declarations.len = len;
-    z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+    z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
     // Forget publisher declaration
     z_msg.body.declare.declarations.val[0].header = _ZN_DECL_FORGET_PUBLISHER;
@@ -1085,7 +1059,7 @@ void zn_undeclare_publisher(zn_publisher_t *pub)
 
     _zn_zenoh_message_free(&z_msg);
 
-    free(pub);
+    vPortFree(pub);
 }
 
 /*------------------ Subscriber Declaration ------------------*/
@@ -1098,9 +1072,9 @@ zn_subinfo_t zn_subinfo_default()
     return si;
 }
 
-zn_subscriber_t *zn_declare_subscriber(zn_session_t *zn, zn_reskey_t reskey, zn_subinfo_t sub_info, zn_data_handler_t callback, void *arg)
+size_t zn_declare_subscriber(zn_session_t *zn, zn_reskey_t reskey, zn_subinfo_t sub_info, zn_data_handler_t callback, void *arg)
 {
-    _zn_subscriber_t *rs = (_zn_subscriber_t *)malloc(sizeof(_zn_subscriber_t));
+    _zn_subscriber_t *rs = (_zn_subscriber_t *)pvPortMalloc(sizeof(_zn_subscriber_t));
     rs->id = _zn_get_entity_id(zn);
     rs->key = reskey;
     rs->info = sub_info;
@@ -1110,8 +1084,9 @@ zn_subscriber_t *zn_declare_subscriber(zn_session_t *zn, zn_reskey_t reskey, zn_
     int res = _zn_register_subscription(zn, _ZN_IS_LOCAL, rs);
     if (res != 0)
     {
-        free(rs);
-        return NULL;
+        vPortFree(rs);
+        _zn_reskey_free(&reskey);
+        return 0;
     }
 
     _zn_zenoh_message_t z_msg = _zn_zenoh_message_init(_ZN_MID_DECLARE);
@@ -1119,7 +1094,7 @@ zn_subscriber_t *zn_declare_subscriber(zn_session_t *zn, zn_reskey_t reskey, zn_
     // We need to declare the subscriber
     unsigned int len = 1;
     z_msg.body.declare.declarations.len = len;
-    z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+    z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
     // Subscriber declaration
     z_msg.body.declare.declarations.val[0].header = _ZN_DECL_SUBSCRIBER;
@@ -1143,14 +1118,8 @@ zn_subscriber_t *zn_declare_subscriber(zn_session_t *zn, zn_reskey_t reskey, zn_
         zn->on_disconnect(zn);
         _zn_send_z_msg(zn, &z_msg, zn_reliability_t_RELIABLE, zn_congestion_control_t_BLOCK);
     }
-
     _zn_zenoh_message_free(&z_msg);
-
-    zn_subscriber_t *subscriber = (zn_subscriber_t *)malloc(sizeof(zn_subscriber_t));
-    subscriber->zn = zn;
-    subscriber->id = rs->id;
-
-    return subscriber;
+    return rs->id;
 }
 
 void zn_undeclare_subscriber(zn_subscriber_t *sub)
@@ -1163,7 +1132,7 @@ void zn_undeclare_subscriber(zn_subscriber_t *sub)
         // We need to undeclare the subscriber
         unsigned int len = 1;
         z_msg.body.declare.declarations.len = len;
-        z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+        z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
         // Forget Subscriber declaration
         z_msg.body.declare.declarations.val[0].header = _ZN_DECL_FORGET_SUBSCRIBER;
@@ -1182,9 +1151,10 @@ void zn_undeclare_subscriber(zn_subscriber_t *sub)
         _zn_zenoh_message_free(&z_msg);
 
         _zn_unregister_subscription(sub->zn, _ZN_IS_LOCAL, s);
+
     }
 
-    free(sub);
+   // vPortFree(sub);
 }
 
 /*------------------ Write ------------------*/
@@ -1284,10 +1254,11 @@ zn_query_target_t zn_query_target_default(void)
 void zn_query(zn_session_t *zn, zn_reskey_t reskey, const char *predicate, zn_query_target_t target, zn_query_consolidation_t consolidation, zn_query_handler_t callback, void *arg)
 {
     // Create the pending query object
-    _zn_pending_query_t *pq = (_zn_pending_query_t *)malloc(sizeof(_zn_pending_query_t));
+    _zn_pending_query_t *pq = (_zn_pending_query_t *)pvPortMalloc(sizeof(_zn_pending_query_t));
     pq->id = _zn_get_query_id(zn);
     pq->key = reskey;
-    pq->predicate = strdup(predicate);
+    pq->predicate = pvPortMalloc(strlen(predicate)); 
+    strncpy(pq->predicate,predicate,strlen(predicate));
     pq->target = target;
     pq->consolidation = consolidation;
     pq->callback = callback;
@@ -1316,7 +1287,7 @@ void reply_collect_handler(const zn_reply_t reply, const void *arg)
     _zn_pending_query_collect_t *pqc = (_zn_pending_query_collect_t *)arg;
     if (reply.tag == zn_reply_t_Tag_DATA)
     {
-        zn_reply_data_t *rd = (zn_reply_data_t *)malloc(sizeof(zn_reply_data_t));
+        zn_reply_data_t *rd = (zn_reply_data_t *)pvPortMalloc(sizeof(zn_reply_data_t));
         rd->source_kind = reply.data.source_kind;
         _z_bytes_copy(&rd->replier_id, &reply.data.replier_id);
         _z_string_copy(&rd->data.key, &reply.data.data.key);
@@ -1350,7 +1321,7 @@ zn_reply_data_array_t zn_query_collect(zn_session_t *zn,
 
     zn_reply_data_array_t rda;
     rda.len = _z_vec_len(&pqc.replies);
-    zn_reply_data_t *replies = (zn_reply_data_t *)malloc(rda.len * sizeof(zn_reply_data_t));
+    zn_reply_data_t *replies = (zn_reply_data_t *)pvPortMalloc(rda.len * sizeof(zn_reply_data_t));
     for (unsigned int i = 0; i < rda.len; i++)
     {
         zn_reply_data_t *reply = (zn_reply_data_t *)_z_vec_get(&pqc.replies, i);
@@ -1379,12 +1350,12 @@ void zn_reply_data_array_free(zn_reply_data_array_t replies)
         if (replies.val[i].data.key.val)
             _z_string_free((z_string_t *)&replies.val[i].data.key);
     }
-    free((zn_reply_data_t *)replies.val);
+    vPortFree((zn_reply_data_t *)replies.val);
 }
 
 zn_queryable_t *zn_declare_queryable(zn_session_t *zn, zn_reskey_t reskey, unsigned int kind, zn_queryable_handler_t callback, void *arg)
 {
-    _zn_queryable_t *rq = (_zn_queryable_t *)malloc(sizeof(_zn_queryable_t));
+    _zn_queryable_t *rq = (_zn_queryable_t *)pvPortMalloc(sizeof(_zn_queryable_t));
     rq->id = _zn_get_entity_id(zn);
     rq->key = reskey;
     rq->kind = kind;
@@ -1394,7 +1365,7 @@ zn_queryable_t *zn_declare_queryable(zn_session_t *zn, zn_reskey_t reskey, unsig
     int res = _zn_register_queryable(zn, rq);
     if (res != 0)
     {
-        free(rq);
+        vPortFree(rq);
         return NULL;
     }
 
@@ -1403,7 +1374,7 @@ zn_queryable_t *zn_declare_queryable(zn_session_t *zn, zn_reskey_t reskey, unsig
     // We need to declare the queryable
     unsigned int len = 1;
     z_msg.body.declare.declarations.len = len;
-    z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+    z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
     // Queryable declaration
     z_msg.body.declare.declarations.val[0].header = _ZN_DECL_QUERYABLE;
@@ -1421,7 +1392,7 @@ zn_queryable_t *zn_declare_queryable(zn_session_t *zn, zn_reskey_t reskey, unsig
 
     _zn_zenoh_message_free(&z_msg);
 
-    zn_queryable_t *queryable = (zn_queryable_t *)malloc(sizeof(zn_queryable_t));
+    zn_queryable_t *queryable = (zn_queryable_t *)pvPortMalloc(sizeof(zn_queryable_t));
     queryable->zn = zn;
     queryable->id = rq->id;
 
@@ -1438,7 +1409,7 @@ void zn_undeclare_queryable(zn_queryable_t *qle)
         // We need to undeclare the subscriber
         unsigned int len = 1;
         z_msg.body.declare.declarations.len = len;
-        z_msg.body.declare.declarations.val = (_zn_declaration_t *)malloc(len * sizeof(_zn_declaration_t));
+        z_msg.body.declare.declarations.val = (_zn_declaration_t *)pvPortMalloc(len * sizeof(_zn_declaration_t));
 
         // Forget Subscriber declaration
         z_msg.body.declare.declarations.val[0].header = _ZN_DECL_FORGET_QUERYABLE;
@@ -1459,7 +1430,7 @@ void zn_undeclare_queryable(zn_queryable_t *qle)
         _zn_unregister_queryable(qle->zn, q);
     }
 
-    free(qle);
+    vPortFree(qle);
 }
 
 void zn_send_reply(zn_query_t *query, const char *key, const uint8_t *payload, size_t len)
@@ -1489,7 +1460,7 @@ void zn_send_reply(zn_query_t *query, const char *key, const uint8_t *payload, s
         _zn_send_z_msg(query->zn, &z_msg, zn_reliability_t_RELIABLE, zn_congestion_control_t_BLOCK);
     }
 
-    free(z_msg.reply_context);
+    vPortFree(z_msg.reply_context);
 }
 
 /*------------------ Pull ------------------*/

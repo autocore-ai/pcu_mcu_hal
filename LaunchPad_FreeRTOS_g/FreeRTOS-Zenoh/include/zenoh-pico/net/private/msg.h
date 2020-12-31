@@ -719,7 +719,12 @@ typedef struct
     } body;
     uint8_t header;
 } _zn_declaration_t;
-_ARRAY_DECLARE(_zn_declaration_t, declaration, _zn_)
+
+typedef struct
+{
+    size_t len;
+    _zn_declaration_t* val;
+}_zn_declaration_array_t;
 
 typedef struct
 {

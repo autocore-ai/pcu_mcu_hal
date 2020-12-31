@@ -13,24 +13,31 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/net.h"
 
-int main(int argc, char **argv)
-{
-    if (argc < 2)
-    {
-        printf("USAGE:\n\tzn_pub_thr <payload-size> [<zenoh-locator>]\n\n");
-        exit(-1);
-    }
-    size_t len = atoi(argv[1]);
-    printf("Running throughput test for payload of %zu bytes.\n", len);
-    zn_properties_t *config = zn_config_default();
-    if (argc > 2)
-    {
-        zn_properties_insert(config, ZN_CONFIG_PEER_KEY, z_string_make(argv[2]));
-    }
 
-    zn_session_t *s = zn_open(config);
+#define ZENOH_PUB_TASK_PRIO          (configMAX_PRIORITIES - 10)
+#define ZENOH_PUB_TASK_SIZE          (configMINIMAL_STACK_SIZE*10)  
+
+xTaskHandle xPubThrHandle;
+_z_i_gmap_t config;
+
+#define LENGTH 1000
+extern  uint8_t remoteIPAddress[4];
+static void vPubThrTask(void)
+{
+    size_t len = LENGTH;
+    char peerkey[32];
+    printf("Running throughput test for payload of %zu bytes.\n", len);
+    
+    freertos_config_default(&config);
+    sprintf(peerkey,"tcp/%d.%d.%d.%d:7447\0",remoteIPAddress[0],remoteIPAddress[1],remoteIPAddress[2],remoteIPAddress[3]);
+    _z_i_gmap_set(&config, ZN_CONFIG_PEER_KEY, peerkey);
+
+    printf("Openning session...\n");
+    zn_session_t *s = zn_open(&config);
     if (s == 0)
     {
         printf("Unable to open session!\n");
@@ -41,8 +48,8 @@ int main(int argc, char **argv)
     znp_start_read_task(s);
     znp_start_lease_task(s);
 
-    char *data = (char *)malloc(len);
-    memset(data, 1, len);
+    char *data =pvPortMalloc(LENGTH);
+    memset(data, 1, (len-1));
 
     zn_reskey_t reskey = zn_rid(zn_declare_resource(s, zn_rname("/test/thr")));
     zn_publisher_t *pub = zn_declare_publisher(s, reskey);
@@ -56,4 +63,16 @@ int main(int argc, char **argv)
     {
         zn_write_ext(s, reskey, (const uint8_t *)data, len, Z_ENCODING_DEFAULT, Z_DATA_KIND_DEFAULT, zn_congestion_control_t_BLOCK);
     }
+    vPortFree(data);
+}
+
+void vStartPubThrTask()
+{
+        xTaskCreate( vPubThrTask,
+                 ( const char * ) "PUB_Task",
+                 ZENOH_PUB_TASK_SIZE,
+                 NULL,
+                 ZENOH_PUB_TASK_PRIO | portPRIVILEGE_BIT,
+                 &xPubThrHandle );
+
 }

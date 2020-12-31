@@ -63,6 +63,7 @@
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/FreeRTOS_Core_V9/include}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/User_driver}"/>
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/User_App}"/>
+									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/FreeRTOS-Zenoh/include}"/>
 								</option>
 								<inputType id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compiler.inputType__C_SRCS.110768663" name="C Sources" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compiler.inputType__C_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compiler.inputType__CPP_SRCS.1522320929" name="C++ Sources" superClass="com.ti.ccstudio.buildDefinitions.TMS470_20.2.compiler.inputType__CPP_SRCS"/>

@@ -11,13 +11,15 @@
  * Contributors:
  *   ADLINK zenoh team, <zenoh@adlink-labs.tech>
  */
-
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/net/private/internal.h"
 #include "zenoh-pico/net/session.h"
 #include "zenoh-pico/private/logging.h"
 #include "zenoh-pico/private/system.h"
+#include "os_portmacro.h"
 
-void *_znp_lease_task(void *arg)
+void _znp_lease_task(void *arg)
 {
     zn_session_t *z = (zn_session_t *)arg;
     z->lease_task_running = 1;
@@ -76,17 +78,17 @@ void *_znp_lease_task(void *arg)
 
     return 0;
 }
-
+xTaskHandle xZnpStartHandle;
+#define ZNP_LEASE_STACK_SIZE    ( configMINIMAL_STACK_SIZE * 10 )
 int znp_start_lease_task(zn_session_t *z)
-{
-    _z_task_t *task = (_z_task_t *)malloc(sizeof(_z_task_t));
-    memset(task, 0, sizeof(pthread_t));
-    z->lease_task = task;
-    if (_z_task_init(task, NULL, _znp_lease_task, z) != 0)
-    {
-        return -1;
-    }
-    return 0;
+{    
+    z->lease_task = xZnpStartHandle;
+    xTaskCreate( _znp_lease_task,
+                 ( const char * ) "znp_start_lease",
+                 ZNP_LEASE_STACK_SIZE,
+                 z,
+                 configMAX_PRIORITIES -12 | portPRIVILEGE_BIT,
+                 &xZnpStartHandle );
 }
 
 int znp_stop_lease_task(zn_session_t *z)

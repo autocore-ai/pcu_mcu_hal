@@ -13,6 +13,8 @@
  */
 
 #include <string.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/net/property.h"
 #include "zenoh-pico/private/collection.h"
 
@@ -53,3 +55,16 @@ void zn_properties_free(zn_properties_t *ps)
 {
     _z_i_map_free(ps);
 }
+
+
+void freertos_config_default(_z_i_gmap_t *map)
+{
+    map->capacity = _Z_DEFAULT_I_MAP_CAPACITY; 
+    
+    _z_i_gmap_set(map, ZN_CONFIG_MODE_KEY, ZN_CONFIG_MODE_DEFAULT);
+    _z_i_gmap_set(map, ZN_CONFIG_MULTICAST_SCOUTING_KEY, ZN_CONFIG_MULTICAST_SCOUTING_DEFAULT);
+    _z_i_gmap_set(map, ZN_CONFIG_MULTICAST_ADDRESS_KEY, ZN_CONFIG_MULTICAST_ADDRESS_DEFAULT);
+    _z_i_gmap_set(map, ZN_CONFIG_MULTICAST_INTERFACE_KEY, ZN_CONFIG_MULTICAST_INTERFACE_DEFAULT);
+    _z_i_gmap_set(map, ZN_CONFIG_SCOUTING_TIMEOUT_KEY, ZN_CONFIG_SCOUTING_TIMEOUT_DEFAULT);    
+}
+

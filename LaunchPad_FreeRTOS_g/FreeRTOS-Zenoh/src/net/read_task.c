@@ -13,13 +13,15 @@
  */
 
 #include <stdint.h>
+#include "FreeRTOS.h"
+#include "os_task.h"
 #include "zenoh-pico/net/private/internal.h"
 #include "zenoh-pico/net/private/msgcodec.h"
 #include "zenoh-pico/net/private/system.h"
 #include "zenoh-pico/net/session.h"
 #include "zenoh-pico/private/logging.h"
 
-void *_znp_read_task(void *arg)
+void _znp_read_task(void *arg)
 {
     zn_session_t *z = (zn_session_t *)arg;
     z->read_task_running = 1;
@@ -51,8 +53,8 @@ void *_znp_read_task(void *arg)
         }
 
         // Decode the message length
-        size_t to_read = (size_t)((uint16_t)_z_rbuf_read(&z->rbuf) | ((uint16_t)_z_rbuf_read(&z->rbuf) << 8));
-
+        size_t to_read = (size_t)((uint16_t)_z_rbuf_read(&z->rbuf));//| ((uint16_t)_z_rbuf_read(&z->rbuf) << 8));
+        to_read |= (size_t) ((uint16_t)(_z_rbuf_read(&z->rbuf) << 8));
         if (_z_rbuf_len(&z->rbuf) < to_read)
         {
             _z_rbuf_compact(&z->rbuf);
@@ -66,17 +68,7 @@ void *_znp_read_task(void *arg)
 
         // Wrap the main buffer for to_read bytes
         _z_rbuf_t rbuf = _z_rbuf_view(&z->rbuf, to_read);
-#else
-        _z_rbuf_compact(&z->rbuf);
 
-        // Read bytes from the socket.
-        while (_z_rbuf_len(&z->rbuf) == 0)
-        {
-            if (_zn_recv_rbuf(z->sock, &z->rbuf) <= 0)
-                goto EXIT_RECV_LOOP;
-        }
-
-        z_iobuf_t rbuf = z->rbuf;
 #endif
 
         while (_z_rbuf_len(&rbuf) > 0)
@@ -121,17 +113,18 @@ EXIT_RECV_LOOP:
 
     return 0;
 }
-
+xTaskHandle xZnpReadHandle;
+#define ZNP_READ_STACK_SIZE    ( configMINIMAL_STACK_SIZE * 10 )
 int znp_start_read_task(zn_session_t *z)
-{
-    _z_task_t *task = (_z_task_t *)malloc(sizeof(_z_task_t));
-    memset(task, 0, sizeof(pthread_t));
-    z->read_task = task;
-    if (_z_task_init(task, NULL, _znp_read_task, z) != 0)
-    {
-        return -1;
-    }
-    return 0;
+{ 
+    z->read_task = xZnpReadHandle;
+  
+     xTaskCreate( _znp_read_task,
+                 ( const char * ) "znp_start_read",
+                 ZNP_READ_STACK_SIZE,
+                 z,
+                 configMAX_PRIORITIES -11 | portPRIVILEGE_BIT,
+                 &xZnpReadHandle );
 }
 
 int znp_stop_read_task(zn_session_t *z)

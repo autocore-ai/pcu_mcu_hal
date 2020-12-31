@@ -84,7 +84,7 @@ void zn_hello_array_free(zn_hello_array_t hellos);
  * Returns:
  *     The created zenoh-net session or null if the creation did not succeed.
  */
-zn_session_t *zn_open(zn_properties_t *config);
+zn_session_t *zn_open(_z_i_gmap_t *config);
 
 /**
  * Close a zenoh-net session.
@@ -172,7 +172,7 @@ void zn_undeclare_publisher(zn_publisher_t *publ);
  * Returns:
  *    The created :c:type:`zn_subscriber_t` or null if the declaration failed.
  */
-zn_subscriber_t *zn_declare_subscriber(zn_session_t *session,
+size_t zn_declaree_subscriber(zn_session_t *session,
                                        zn_reskey_t reskey,
                                        zn_subinfo_t sub_info,
                                        zn_data_handler_t callback,

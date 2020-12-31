@@ -14,7 +14,8 @@
 
 #ifndef _ZENOH_PICO_RESULT_H
 #define _ZENOH_PICO_RESULT_H
-
+#include "FreeRTOS.h"
+#include "os_task.h"
 /*------------------ Result Enums ------------------*/
 typedef enum _z_err_t
 {
@@ -54,12 +55,12 @@ typedef enum _z_res_t
                                                                                         \
     inline static void prefix##_##name##_p_result_init(prefix##_##name##_p_result_t *r) \
     {                                                                                   \
-        r->value.name = (type *)malloc(sizeof(type));                                   \
+        r->value.name = (type *)pvPortMalloc(sizeof(type));                                   \
     }                                                                                   \
                                                                                         \
     inline static void prefix##_##name##_p_result_free(prefix##_##name##_p_result_t *r) \
     {                                                                                   \
-        free(r->value.name);                                                            \
+        vPortFree(r->value.name);                                                            \
         r->value.name = NULL;                                                           \
     }
 
@@ -82,7 +83,7 @@ typedef enum _z_res_t
 #define _ASSURE_FREE_P_RESULT(in_r, out_r, e, name) \
     if (in_r.tag == _z_res_t_ERR)                   \
     {                                               \
-        free(out_r->value.name);                    \
+        vPortFree(out_r->value.name);               \
         out_r->tag = _z_res_t_ERR;                  \
         out_r->value.error = e;                     \
         return;                                     \

@@ -36,45 +36,45 @@
     } prefix##name##_p_array_t;
 
 #define _ARRAY_S_DEFINE(type, name, prefix, arr, len) \
-    prefix##name##_array_t arr = {len, (type *)malloc(len * sizeof(type))};
+    prefix##name##_array_t arr = {len, (type *)pvPortMalloc(len * sizeof(type))};
 
 #define _ARRAY_P_S_DEFINE(type, name, prefix, arr, len) \
-    prefix##name##_array_t arr = {len, (type **)malloc(len * sizeof(type *))};
+    prefix##name##_array_t arr = {len, (type **)pvPortMalloc(len * sizeof(type *))};
 
 #define _ARRAY_H_DEFINE(T, arr, len)                               \
-    z_array_##T *arr = (z_array_##T *)malloc(sizeof(z_array_##T)); \
+    z_array_##T *arr = (z_array_##T *)pvPortMalloc(sizeof(z_array_##T)); \
     arr->len = len;                                                \
-    arr->val = (T *)malloc(len * sizeof(T));
+    arr->val = (T *)pvPortMalloc(len * sizeof(T));
 
 #define _ARRAY_S_INIT(T, arr, len) \
     arr.len = len;                 \
-    arr.val = (T *)malloc(len * sizeof(T));
+    arr.val = (T *)pvPortMalloc(len * sizeof(T));
 
 #define _ARRAY_P_S_INIT(T, arr, len) \
     arr.len = len;                   \
-    arr.val = (T **)malloc(len * sizeof(T *));
+    arr.val = (T **)pvPortMalloc(len * sizeof(T *));
 
 #define _ARRAY_H_INIT(T, arr, len) \
     arr->len = len;                \
-    arr->val = (T *)malloc(len * sizeof(T))
+    arr->val = (T *)pvPortMalloc(len * sizeof(T))
 
 #define _ARRAY_S_COPY(T, dst, src)              \
     dst.len = src.len;                          \
-    dst.val = (T *)malloc(dst.len * sizeof(T)); \
+    dst.val = (T *)pvPortMalloc(dst.len * sizeof(T)); \
     memcpy(dst.val, src.val, dst.len);
 
 #define _ARRAY_H_COPY(T, dst, src)                \
     dst->len = src->len;                          \
-    dst->val = (T *)malloc(dst->len * sizeof(T)); \
+    dst->val = (T *)pvPortMalloc(dst->len * sizeof(T)); \
     memcpy(dst->val, src->val, dst->len);
 
 #define _ARRAY_S_FREE(arr) \
-    free(arr.val);         \
+    vPortFree(arr.val);         \
     arr.val = 0;           \
     arr.len = 0;
 
 #define _ARRAY_H_FREE(arr) \
-    free(arr->val);        \
+    vPortFree(arr->val);        \
     arr->val = 0;          \
     arr->len = 0
 
