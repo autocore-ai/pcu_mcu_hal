@@ -7,3 +7,5 @@ This resource contains source code needed for flashing the MCU on AutoCore PCU d
 To learn about PCU board: https://github.com/autocore-ai/autocore_pcu_doc
 
 To build and flash MCU HAL, follow the instructions [How to Flash](docs/How_to_flash.md)
+
+How to use zenoh c client api on mcu, follow the instructions [zenoh porting](docs/zenoh porting.md)
