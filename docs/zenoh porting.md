@@ -19,12 +19,12 @@ Assuming you've intalled  image of the **zenoh** network router on pcu, then sim
 $ RUST_LOG=debug ./zenohd -l tcp/192.168.1.239:7447
 ```
 ### Basic Pub/Sub Example
-Assuming that (1) you are running the **zenoh** network router,  and (2) you are start vStartPubTask on mcu, do:
+Assuming that (1) you are running the **zenoh** network router,  and (2) you start vStartPubTask on mcu, do:
 ```bash
 $ ./zn_sub -e tcp/192.168.1.239:7447
 ```
 
-Assuming that (1) you are running the **zenoh** network router,  and (2) you are start vStartSubTask on mcu, do:
+Assuming that (1) you are running the **zenoh** network router,  and (2) you start vStartSubTask on mcu, do:
 ```bash
 $ ./zn_pub -e tcp/192.168.1.239:7447
 ```
