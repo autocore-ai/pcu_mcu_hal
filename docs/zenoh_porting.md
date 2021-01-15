@@ -6,7 +6,7 @@ It is a C API for pure clientss, and does not support peer-to-peer communication
 -------------------------------
 ##How to build it
 
-To build and flash MCU HAL, follow the instructions [How to Flash](docs/How_to_flash.md)
+To build and flash MCU HAL, follow the instructions [How to Flash](How_to_flash.md)
 
 
 -------------------------------
