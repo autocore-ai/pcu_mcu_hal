@@ -103,8 +103,8 @@
 /** 
  * Default session lease in milliseconds: 10 seconds
  */
-#define ZN_SESSION_LEASE 10000
-#define ZN_KEEP_ALIVE_INTERVAL 1000
+#define ZN_SESSION_LEASE 100000
+#define ZN_KEEP_ALIVE_INTERVAL 10000
 
 /** 
  * The default sequence number resolution takes 4 bytes on the wire.
