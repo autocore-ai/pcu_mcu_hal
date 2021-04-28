@@ -110,8 +110,6 @@ TimerHandle_t   AutoReloadTimer_Handle;
 void AutoReloadCallback(TimerHandle_t xTimer);
 void vStartSubTask();
 void vStartPubTask();
-void vStartSubThrTask();
-void vStartPubThrTask();
 
 /** ***************************************************************************************************
  * @fn      void main(void)
@@ -162,7 +160,7 @@ void main(void)
     FreeRTOS_udp_can_Init();
     vStartPTPTask();
 
-
+    vStartSubTask();
 
     /* Start the command interpreter */
     vStartUARTCommandInterpreterTask();
